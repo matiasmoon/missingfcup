@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: missingfcup
+Version: 0.1.0
+Summary: Interactive missing-data visualizations
+Author: Matias
+Requires-Python: >=3.10
+Requires-Dist: pandas>=2.0
+Requires-Dist: plotly>=5.20
