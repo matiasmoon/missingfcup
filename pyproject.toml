@@ -1,11 +1,30 @@
-[project]
-name = "missingfcup"
-version = "0.1.0"
-description = "Interactive missing-data visualizations"
-authors = [{name="Matias"}]
-requires-python = ">=3.10"
+# -------------------------------
+# pyproject.toml
+# This file defines metadata, dependencies,
+# and build configuration for the MissingFCUP Python package.
+# --------------
 
+# The [project] table declares all metadata about your package.
+[project]
+
+# The name of the package as it will appear on PyPI.
+name = "missingfcup"
+
+# Package's version number.
+# Follows Semantic Versioning: MAJOR.MINOR.PATCH
+version = "0.1.0"
+
+# A short summary of what your package does.
+description = "Interactive missing-data visualizations"
+
+# List of authors.
+authors = [{name="Matias Luna"}]
+
+# Minimum version of Python required to install and run the package.
+requires-python = ">=3.9"
+
+# Dependencies that will be automatically installed by pip when someone installs your package.
 dependencies = [
-    "pandas>=2.0",
-    "plotly>=5.20"
+    "pandas>=2.0", # Required dependency: ensures pandas ≥ 2.0 is installed
+    "plotly>=5.20" # Required dependency: ensures Plotly ≥ 5.20 is installed
 ]
