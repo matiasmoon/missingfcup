@@ -9,7 +9,7 @@ df = pd.DataFrame({
 
 item = MissingObject(df)
 
-heatmap = item.heatmap(show_scale=True)
+heatmap = item.heatmap(show_colorscale_legend=True)
 heatmap.show()
 
 barchat = item.barchart()
