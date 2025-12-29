@@ -1,30 +1,45 @@
-# -------------------------------
 # pyproject.toml
-# This file defines metadata, dependencies,
-# and build configuration for the MissingFCUP Python package.
-# --------------
+# Project configuration for the missingfcup package
 
-# The [project] table declares all metadata about your package.
 [project]
-
-# The name of the package as it will appear on PyPI.
 name = "missingfcup"
-
-# Package's version number.
-# Follows Semantic Versioning: MAJOR.MINOR.PATCH
 version = "0.1.0"
-
-# A short summary of what your package does.
-description = "Interactive missing-data visualizations"
-
-# List of authors.
-authors = [{name="Matias Luna"}]
-
-# Minimum version of Python required to install and run the package.
+description = "Python package to create visualizations that showcase missing values"
+authors = [
+    { name = "Matias Luna" }
+]
 requires-python = ">=3.9"
 
-# Dependencies that will be automatically installed by pip when someone installs your package.
 dependencies = [
-    "pandas>=2.0", # Required dependency: ensures pandas ≥ 2.0 is installed
-    "plotly>=5.20" # Required dependency: ensures Plotly ≥ 5.20 is installed
+    "pandas>=2.0",
+    "plotly>=5.20"
 ]
+
+readme = "README.md"
+license = { text = "MIT" }
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+keywords = [
+    "missing-data",
+    "visualization",
+    "plotly",
+    "data-science",
+    "pandas"
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
