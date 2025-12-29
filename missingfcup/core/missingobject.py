@@ -133,6 +133,12 @@ class MissingObject:
         ...     missing_color="#FF5722"
         ... ).show()
 
+        Ordered heatmap to reveal patterns:
+        >>> missing.heatmap(
+        ...     order_by="age",
+        ...     order_direction="ascending"
+        ... ).show()
+
         See Also
         --------
         Heatmap : Full documentation of visualization parameters
@@ -150,7 +156,7 @@ class MissingObject:
         # Create matrix
         matrix = self.matrix(**matrix_params)
 
-        # Create and return heatmap with remaining kwargs
+        # Create and return heatmap with remaining kwargs (includes ordering params)
         return Heatmap(matrix=matrix, **kwargs)
 
     def barchart(self, **kwargs) -> BarChart:

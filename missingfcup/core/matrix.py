@@ -46,7 +46,7 @@ class Matrix:
     ... )
     """
 
-    def __init__(self, values, columns):
+    def __init__(self, values, columns, dataframe=None):
         """
         Initialize a Matrix object.
 
@@ -56,9 +56,12 @@ class Matrix:
             Binary matrix (0 = missing, 1 = present)
         columns : list
             Column names corresponding to the matrix columns
+        dataframe : pd.DataFrame, optional
+            Original DataFrame (filtered) for ordering operations
         """
         self.values = values
         self.columns = columns
+        self.dataframe = dataframe
 
     @classmethod
     def from_dataframe(
@@ -255,4 +258,5 @@ class Matrix:
         return cls(
             values=boolean_matrix.values,
             columns=list(boolean_matrix.columns),
+            dataframe=df,  # Store the filtered DataFrame for ordering
         )
