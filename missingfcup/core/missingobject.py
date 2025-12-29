@@ -133,10 +133,10 @@ class MissingObject:
         ...     missing_color="#FF5722"
         ... ).show()
 
-        Ordered heatmap to reveal patterns:
+        Grouped heatmap to reveal patterns:
         >>> missing.heatmap(
-        ...     order_by="age",
-        ...     order_direction="ascending"
+        ...     group_by="age",
+        ...     group_direction="ascending"
         ... ).show()
 
         See Also
