@@ -57,6 +57,7 @@ class Heatmap(Plot):
         group_by: Optional[Union[str, List[str]]] = None,
         group_direction: Union[Literal["ascending", "descending"], List[Literal["ascending", "descending"]]] = "ascending",
         group_categories: Optional[Union[List, List[List]]] = None,
+        group_by_mode: Literal["binary", "completeness"] = "binary",
     ):
         """
         Create an interactive missingness heatmap.
@@ -140,6 +141,21 @@ class Heatmap(Plot):
 
             Note: Missing values (NaN/None) in the grouping column will appear as "nan".
 
+        group_by_mode : {"binary", "completeness"}, default="binary"
+            How to visualize missingness when using group_by.
+
+            - "binary": Show presence (green) or absence (red) for each cell (default).
+              Uses the two discrete colors specified by present_color and missing_color.
+
+            - "completeness": Show row-level completeness as a percentage using a color gradient.
+              Each row is colored based on what percentage of its values are present.
+              This mode uses a continuous color scale from missing_color (0% complete)
+              through intermediate colors to present_color (100% complete).
+              The colorscale legend will show percentage values when enabled.
+
+            Note: This parameter only affects visualization when group_by is specified.
+            Without group_by, the heatmap always uses binary mode.
+
         Notes
         -----
         Column Selection:
@@ -181,6 +197,7 @@ class Heatmap(Plot):
         self.group_by = group_by
         self.group_direction = group_direction
         self.group_categories = group_categories
+        self.group_by_mode = group_by_mode
 
         # Validate grouping parameters
         if self.group_by is not None:
@@ -318,29 +335,61 @@ class Heatmap(Plot):
             sorted_matrix_cols = sorted_matrix
             reordered_columns = self.matrix.columns
 
-        hover_template = self.hover_template or (
-            "<b>Row</b>: %{y}<br>"
-            "<b>Col</b>: %{x}<br>"
-            "<b>Present?</b>: %{z}<extra></extra>"
-        )
+        # Determine if we're using completeness mode
+        use_completeness = self.group_by_mode == "completeness" and self.group_by is not None
+
+        if use_completeness:
+            # Calculate row-level completeness (percentage of present values per row)
+            row_completeness = np.mean(sorted_matrix_cols, axis=1)
+
+            # Create a matrix where each row has the same completeness value across all columns
+            z_data = np.tile(row_completeness[:, np.newaxis], (1, sorted_matrix_cols.shape[1]))
+
+            # Use a continuous colorscale from missing_color (0) to present_color (1)
+            colorscale = [[0, self.missing_color], [0.5, "#ffff00"], [1, self.present_color]]
+
+            hover_template = self.hover_template or (
+                "<b>Row</b>: %{y}<br>"
+                "<b>Col</b>: %{x}<br>"
+                "<b>Completeness</b>: %{z:.1%}<extra></extra>"
+            )
+
+            colorbar_config = dict(
+                title="Completeness",
+                tickformat=".0%",
+                len=0.5,
+            ) if self.show_scale else None
+        else:
+            # Binary mode (default)
+            z_data = sorted_matrix_cols
+            colorscale = [[0, self.missing_color], [1, self.present_color]]
+
+            hover_template = self.hover_template or (
+                "<b>Row</b>: %{y}<br>"
+                "<b>Col</b>: %{x}<br>"
+                "<b>Present?</b>: %{z}<extra></extra>"
+            )
+
+            colorbar_config = dict(
+                tickmode='array',
+                tickvals=[0, 1],
+                ticktext=['Missing', 'Present'],
+                len=0.3,
+            ) if self.show_scale else None
 
         fig = go.Figure(
             go.Heatmap(
-                z=sorted_matrix_cols,
+                z=z_data,
                 x=reordered_columns,
                 y=y_labels,
-                colorscale=[[0, self.missing_color], [1, self.present_color]],
+                colorscale=colorscale,
                 showscale=self.show_scale,
                 hoverinfo="text" if self.show_hover else "skip",
                 hovertemplate=hover_template,
                 xgap=self.column_gap,
-                # Make colorbar discrete with only 2 values
-                colorbar=dict(
-                    tickmode='array',
-                    tickvals=[0, 1],
-                    ticktext=['Missing', 'Present'],
-                    len=0.3,  # Shorter colorbar
-                ) if self.show_scale else None,
+                colorbar=colorbar_config,
+                zmin=0,
+                zmax=1,
             )
         )
 

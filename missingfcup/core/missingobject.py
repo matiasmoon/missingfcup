@@ -62,6 +62,8 @@ class MissingObject:
         completeness_mode: Optional[Literal["most", "least"]] = None,
         completeness_threshold: float = 0,
         max_columns_by_completeness: int = 0,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
     ) -> Matrix:
         """
         Create a missingness matrix from the DataFrame.
@@ -83,6 +85,13 @@ class MissingObject:
         max_columns_by_completeness : int, default=0
             Limit to N most/least complete columns.
 
+        ignore_high_missingness : bool, default=True
+            Automatically exclude columns with extremely high missingness.
+
+        high_missingness_threshold : float, default=0.9
+            Missingness threshold for automatic exclusion (0 to 1).
+            Default of 0.9 excludes columns with ≥90% missing values.
+
         Returns
         -------
         Matrix
@@ -99,6 +108,8 @@ class MissingObject:
             completeness_mode=completeness_mode,
             completeness_threshold=completeness_threshold,
             max_columns_by_completeness=max_columns_by_completeness,
+            ignore_high_missingness=ignore_high_missingness,
+            high_missingness_threshold=high_missingness_threshold,
         )
 
     def heatmap(self, **kwargs) -> Heatmap:
@@ -151,12 +162,14 @@ class MissingObject:
             "completeness_mode": kwargs.pop("completeness_mode", None),
             "completeness_threshold": kwargs.pop("completeness_threshold", 0),
             "max_columns_by_completeness": kwargs.pop("max_columns_by_completeness", 0),
+            "ignore_high_missingness": kwargs.pop("ignore_high_missingness", True),
+            "high_missingness_threshold": kwargs.pop("high_missingness_threshold", 0.9),
         }
 
         # Create matrix
         matrix = self.matrix(**matrix_params)
 
-        # Create and return heatmap with remaining kwargs (includes ordering params)
+        # Create and return heatmap with remaining kwargs (includes ordering params and group_by_mode)
         return Heatmap(matrix=matrix, **kwargs)
 
     def barchart(self, **kwargs) -> BarChart:

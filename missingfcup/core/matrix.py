@@ -72,6 +72,8 @@ class Matrix:
         completeness_mode: Optional[Literal["most", "least"]] = None,
         completeness_threshold: float = 0,
         max_columns_by_completeness: int = 0,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
     ) -> "Matrix":
         """
         Create a missingness matrix from a pandas DataFrame.
@@ -123,6 +125,28 @@ class Matrix:
 
             Applied after `completeness_threshold` filter.
             Ignored if `completeness_mode` is None.
+
+        ignore_high_missingness : bool, default=True
+            Whether to automatically exclude columns with extremely high missingness.
+            When True, columns with missingness above `high_missingness_threshold`
+            are filtered out before applying other filters.
+
+            This is useful to remove columns that are almost entirely empty and
+            would not provide meaningful analysis.
+
+            Set to False to include all columns regardless of missingness level.
+
+        high_missingness_threshold : float, default=0.9
+            Missingness threshold for automatic exclusion (0 to 1).
+            Only used when `ignore_high_missingness` is True.
+
+            Columns with missingness percentage >= this threshold are excluded.
+            Default of 0.9 means columns that are 90% or more missing are excluded.
+
+            Examples:
+            - 0.9 (default): Exclude columns with ≥90% missing values
+            - 0.8: Exclude columns with ≥80% missing values
+            - 1.0: Effectively disables filtering (only 100% missing excluded)
 
         Returns
         -------
@@ -177,6 +201,19 @@ class Matrix:
         ...     completeness_mode="least",
         ...     completeness_threshold=0.3
         ... )
+
+        >>> # Include all columns, even those with high missingness
+        >>> matrix = Matrix.from_dataframe(
+        ...     df,
+        ...     ignore_high_missingness=False
+        ... )
+
+        >>> # Exclude columns with ≥80% missing values
+        >>> matrix = Matrix.from_dataframe(
+        ...     df,
+        ...     ignore_high_missingness=True,
+        ...     high_missingness_threshold=0.8
+        ... )
         """
         if not isinstance(df, pd.DataFrame):
             raise TypeError(f"df must be a pandas DataFrame, got {type(df).__name__}")
@@ -195,8 +232,29 @@ class Matrix:
 
         if max_columns_by_completeness < 0:
             raise ValueError(f"max_columns_by_completeness must be non-negative, got {max_columns_by_completeness}")
-    
+
+        if high_missingness_threshold < 0 or high_missingness_threshold > 1:
+            raise ValueError(f"high_missingness_threshold must be in range [0, 1], got {high_missingness_threshold}")
+
         df = df.copy()
+
+        # Apply high missingness filter first if enabled
+        if ignore_high_missingness:
+            missingness = 1 - (df.count(axis='rows').values / len(df))
+            cols_to_keep = missingness < high_missingness_threshold
+            if not cols_to_keep.any():
+                raise ValueError(
+                    f"All columns have missingness >= {high_missingness_threshold}. "
+                    f"Consider setting ignore_high_missingness=False or adjusting high_missingness_threshold."
+                )
+            df = df.iloc[:, cols_to_keep]
+            num_excluded = (~cols_to_keep).sum()
+            if num_excluded > 0:
+                warnings.warn(
+                    f"Excluded {num_excluded} column(s) with ≥{high_missingness_threshold:.0%} missing values. "
+                    f"Set ignore_high_missingness=False to include them.",
+                    UserWarning
+                )
 
         # Handle selected columns
         if selected_columns:

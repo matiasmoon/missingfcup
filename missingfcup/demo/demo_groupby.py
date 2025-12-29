@@ -95,3 +95,50 @@ print("• Grouping columns are moved to the left and highlighted")
 print("• Orange borders mark the grouping columns")
 print("• Missing values in grouping columns appear as 'nan'")
 print("="*60)
+
+# Example 7: Group by with completeness mode (NEW FEATURE!)
+print("\nExample 7: Group by with COMPLETENESS visualization")
+print("  Instead of binary present/missing, show row completeness percentage")
+heatmap7 = missing.heatmap(
+    group_by="education",
+    group_categories=["Low", "Med", "High"],
+    group_by_mode="completeness",  # NEW: Show completeness percentage per row
+    title="Completeness by Education Level",
+    show_colorscale_legend=True,
+    figure_size_pixels=(900, appropriate_height)
+)
+heatmap7.show()
+
+# Example 8: Demonstrate ignore_high_missingness parameter
+print("\nExample 8: Controlling high missingness filtering")
+
+# Create a dataset with some columns that have very high missingness
+df_with_sparse = df.copy()
+df_with_sparse['rarely_filled_1'] = [None] * 9 + [100]  # 90% missing
+df_with_sparse['rarely_filled_2'] = [None] * 9 + [200]  # 90% missing
+df_with_sparse['almost_empty'] = [None] * 10  # 100% missing
+
+missing_sparse = MissingObject(df_with_sparse)
+
+print("  8a. Default behavior (ignore columns with ≥90% missing)")
+heatmap8a = missing_sparse.heatmap(
+    title="Default - Columns with ≥90% missing are excluded",
+    show_colorscale_legend=True
+)
+heatmap8a.show()
+
+print("  8b. Include ALL columns (ignore_high_missingness=False)")
+heatmap8b = missing_sparse.heatmap(
+    ignore_high_missingness=False,  # NEW: Include all columns
+    title="All Columns Included (even 90%+ missing)",
+    show_colorscale_legend=True
+)
+heatmap8b.show()
+
+print("  8c. Custom threshold (exclude columns with ≥80% missing)")
+heatmap8c = missing_sparse.heatmap(
+    high_missingness_threshold=0.8,  # NEW: Custom threshold
+    title="Exclude Columns with ≥80% Missing",
+    show_colorscale_legend=True
+)
+heatmap8c.show()
