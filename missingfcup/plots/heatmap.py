@@ -54,9 +54,9 @@ class Heatmap(Plot):
         show_colorscale_legend: bool = False,
         column_spacing: float = 0.5,
         title: Optional[str] = None,
-        group_by: Optional[Union[str, List[str]]] = None,
-        group_direction: Union[Literal["ascending", "descending"], List[Literal["ascending", "descending"]]] = "ascending",
-        group_categories: Optional[Union[List, List[List]]] = None,
+        sort_by_columns: Optional[Union[str, List[str]]] = None,
+        sort_direction: Union[Literal["ascending", "descending"], List[Literal["ascending", "descending"]]] = "ascending",
+        category_order: Optional[Union[List, List[List]]] = None,
         group_by_mode: Literal["binary", "completeness"] = "binary",
     ):
         """
