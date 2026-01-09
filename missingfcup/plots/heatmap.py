@@ -358,6 +358,10 @@ class Heatmap(Plot):
                 tickvals=[0, 1],
                 ticktext=['0%', '100%'],
                 len=0.3,
+                x=1.02,  # Position to the right of the plot
+                xanchor='left',  # Anchor from the left side of the colorbar
+                y=0.5,  # Center vertically
+                yanchor='middle'
             ) if self.show_scale else None
         else:
             # Binary mode (default)
@@ -375,6 +379,10 @@ class Heatmap(Plot):
                 tickvals=[0, 1],
                 ticktext=['Missing', 'Present'],
                 len=0.3,
+                x=1.02,  # Position to the right of the plot
+                xanchor='left',  # Anchor from the left side of the colorbar
+                y=0.5,  # Center vertically
+                yanchor='middle'
             ) if self.show_scale else None
 
         fig = go.Figure(
