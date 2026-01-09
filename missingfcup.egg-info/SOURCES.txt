@@ -13,6 +13,7 @@ missingfcup/demo/demo_collisions_dataset.py
 missingfcup/demo/demo_groupby.py
 missingfcup/demo/simple_demo.py
 missingfcup/demo/simple_demo_categorical.py
+missingfcup/demo/simple_demo_panel.py
 missingfcup/plots/__init__.py
 missingfcup/plots/barchart.py
 missingfcup/plots/heatmap.py
