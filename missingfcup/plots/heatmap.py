@@ -56,7 +56,7 @@ class Heatmap(Plot):
         title: Optional[str] = None,
         sort_by_columns: Optional[Union[str, List[str]]] = None,
         sort_direction: Union[Literal["ascending", "descending"], List[Literal["ascending", "descending"]]] = "ascending",
-        category_order: Optional[Union[List, List[List]]] = None,
+        sort_categorical: Optional[Union[List, List[List]]] = None,
         group_by_mode: Literal["binary", "completeness"] = "binary",
     ):
         """
@@ -103,8 +103,8 @@ class Heatmap(Plot):
             Custom title for the plot.
             If None, uses "Interactive Missingness Matrix" as default.
 
-        group_by : str or list of str, optional
-            Column name(s) to group/sort rows by. Maximum of 2 columns allowed.
+        sort_by_columns : str or list of str, optional
+            Column name(s) to sort rows by. Maximum of 2 columns allowed.
             When specified, rows will be grouped and reordered to reveal patterns.
             The grouping column(s) will be moved to the left and visually highlighted.
 
@@ -112,11 +112,11 @@ class Heatmap(Plot):
             (leftmost) column in the matrix, in their original order.
 
             Examples:
-            - "age" - group by single column
-            - ["city", "age"] - group by city first, then age
+            - "age" - sort by single column
+            - ["city", "age"] - sort by city first, then age
 
-        group_direction : {"ascending", "descending"} or list of them, default="ascending"
-            Direction to sort numeric grouping columns.
+        sort_direction : {"ascending", "descending"} or list of them, default="ascending"
+            Direction to sort numeric sorting columns.
 
             For a single column:
             - "ascending": lowest to highest (default)
@@ -125,11 +125,11 @@ class Heatmap(Plot):
             For multiple columns, provide a list:
             - ["ascending", "descending"] - first column ascending, second descending
 
-            For categorical columns, use `group_categories` instead.
+            For categorical columns, use `sort_categorical` instead.
 
-        group_categories : list or list of lists, optional
-            Custom ordering for categorical (non-numeric) grouping columns.
-            Only used when grouping by categorical columns.
+        sort_categorical : list or list of lists, optional
+            Custom ordering for categorical (non-numeric) sorting columns.
+            Only used when sorting by categorical columns.
 
             For a single categorical column:
             - ["Low", "Medium", "High"] - order categories in this sequence
@@ -139,22 +139,23 @@ class Heatmap(Plot):
 
             If not provided for a categorical column, pandas default ordering is used.
 
-            Note: Missing values (NaN/None) in the grouping column will appear as "nan".
+            Note: Missing values (NaN/None) in the sorting column will appear as "nan".
 
         group_by_mode : {"binary", "completeness"}, default="binary"
-            How to visualize missingness when using group_by.
+            How to visualize missingness when using sort_by_columns.
 
             - "binary": Show presence (green) or absence (red) for each cell (default).
               Uses the two discrete colors specified by present_color and missing_color.
+              Hover shows "Present?: 0 or 1".
 
-            - "completeness": Show row-level completeness as a percentage using a color gradient.
-              Each row is colored based on what percentage of its values are present.
-              This mode uses a continuous color scale from missing_color (0% complete)
-              through intermediate colors to present_color (100% complete).
-              The colorscale legend will show percentage values when enabled.
+            - "completeness": Show cell-level missingness as a percentage (0% or 100%).
+              Each cell is colored based on whether the value is present (0% missing, green)
+              or missing (100% missing, red).
+              This mode uses the same color scale as binary but displays values as percentages.
+              Hover shows "Missing: 0% or 100%".
 
-            Note: This parameter only affects visualization when group_by is specified.
-            Without group_by, the heatmap always uses binary mode.
+            Note: This parameter only affects visualization when sort_by_columns is specified.
+            Without sort_by_columns, the heatmap always uses binary mode.
 
         Notes
         -----
@@ -194,46 +195,46 @@ class Heatmap(Plot):
         self.show_scale = show_colorscale_legend
         self.column_gap = column_spacing
         self.title = title
-        self.group_by = group_by
-        self.group_direction = group_direction
-        self.group_categories = group_categories
+        self.sort_by_columns = sort_by_columns
+        self.sort_direction = sort_direction
+        self.sort_categorical = sort_categorical
         self.group_by_mode = group_by_mode
 
         # Validate grouping parameters
-        if self.group_by is not None:
-            self._validate_grouping_params()
+        if self.sort_by_columns is not None:
+            self._validate_sorting_params()
 
         self._figure: Optional[go.Figure] = None
 
-    def _validate_grouping_params(self):
-        """Validate grouping parameters."""
+    def _validate_sorting_params(self):
+        """Validate sorting parameters."""
         if self.matrix.dataframe is None:
             raise ValueError(
-                "Cannot use group_by: Matrix does not contain original DataFrame. "
+                "Cannot use sort_by_columns: Matrix does not contain original DataFrame. "
                 "Make sure the Matrix was created with Matrix.from_dataframe()."
             )
-
-        # Normalize group_by to list
-        group_cols = [self.group_by] if isinstance(self.group_by, str) else self.group_by
+    
+        # Normalize sort_by_columns to list
+        sort_cols = [self.sort_by_columns] if isinstance(self.sort_by_columns, str) else self.sort_by_columns
 
         # Check maximum 2 columns
-        if len(group_cols) > 2:
+        if len(sort_cols) > 2:
             raise ValueError(
-                f"Maximum 2 columns allowed for grouping. Got {len(group_cols)}: {group_cols}"
+                f"Maximum 2 columns allowed for sorting. Got {len(sort_cols)}: {sort_cols}"
             )
 
         # Check columns exist in dataframe
         df = self.matrix.dataframe
-        missing_cols = [col for col in group_cols if col not in df.columns]
+        missing_cols = [col for col in sort_cols if col not in df.columns]
         if missing_cols:
             raise ValueError(
-                f"Grouping columns not found in DataFrame: {missing_cols}. "
+                f"Sorting columns not found in DataFrame: {missing_cols}. "
                 f"Available columns: {list(df.columns)}"
             )
 
     def _get_sorted_data(self):
-        """Sort matrix data according to group_by parameters and return sorted values, y-labels, and group columns."""
-        if self.group_by is None:
+        """Sort matrix data according to sort_by_columns parameters and return sorted values, y-labels, and group columns."""
+        if self.sort_by_columns is None:
             # No grouping - use first column values for Y-axis labels
             if self.matrix.dataframe is not None and len(self.matrix.dataframe.columns) > 0:
                 first_col = self.matrix.dataframe.columns[0]
@@ -244,38 +245,38 @@ class Heatmap(Plot):
                 return self.matrix.values, list(range(len(self.matrix.values))), None
 
         df = self.matrix.dataframe.copy()
-        group_cols = [self.group_by] if isinstance(self.group_by, str) else self.group_by
+        sort_cols = [self.sort_by_columns] if isinstance(self.sort_by_columns, str) else self.sort_by_columns
 
         # Normalize direction to list
-        if isinstance(self.group_direction, str):
-            directions = [self.group_direction] * len(group_cols)
+        if isinstance(self.sort_direction, str):
+            directions = [self.sort_direction] * len(sort_cols)
         else:
-            directions = self.group_direction
-            if len(directions) != len(group_cols):
+            directions = self.sort_direction
+            if len(directions) != len(sort_cols):
                 raise ValueError(
-                    f"Number of group_direction ({len(directions)}) must match "
-                    f"number of group_by columns ({len(group_cols)})"
+                    f"Number of sort_direction ({len(directions)}) must match "
+                    f"number of sort_by_columns ({len(sort_cols)})"
                 )
 
         # Normalize categories to list
-        if self.group_categories is None:
-            categories_list = [None] * len(group_cols)
-        elif isinstance(self.group_categories[0], list) if self.group_categories else False:
-            categories_list = self.group_categories
+        if self.sort_categorical is None:
+            categories_list = [None] * len(sort_cols)
+        elif isinstance(self.sort_categorical[0], list) if self.sort_categorical else False:
+            categories_list = self.sort_categorical
         else:
-            categories_list = [self.group_categories]
+            categories_list = [self.sort_categorical]
 
-        if len(categories_list) != len(group_cols):
+        if len(categories_list) != len(sort_cols):
             raise ValueError(
-                f"Number of group_categories ({len(categories_list)}) must match "
-                f"number of group_by columns ({len(group_cols)})"
+                f"Number of sort_categorical ({len(categories_list)}) must match "
+                f"number of sort_by_columns ({len(sort_cols)})"
             )
 
         # Build sort keys for each column
         sort_by = []
         sort_ascending = []
 
-        for col, direction, categories in zip(group_cols, directions, categories_list):
+        for col, direction, categories in zip(sort_cols, directions, categories_list):
             if categories is not None:
                 # Categorical ordering with custom categories
                 cat_type = pd.CategoricalDtype(categories=categories, ordered=True)
@@ -303,30 +304,29 @@ class Heatmap(Plot):
         # Create y-axis labels from the grouping column(s)
         y_labels = []
         for idx in sorted_indices:
-            label_parts = [str(df.loc[idx, col]) for col in group_cols]
+            label_parts = [str(df.loc[idx, col]) for col in sort_cols]
             y_labels.append(" | ".join(label_parts))
 
-        return sorted_matrix, y_labels, group_cols
+        return sorted_matrix, y_labels, sort_cols
 
     def _build_figure(self) -> go.Figure:
         # Get sorted data if grouping is specified
-        sorted_matrix, y_labels, group_cols = self._get_sorted_data()
+        sorted_matrix, y_labels, sort_cols = self._get_sorted_data()
 
-        # Reorder columns so that group_by columns are on the left
-        if group_cols:
-            # Get indices of grouping columns IN THE ORDER SPECIFIED
-            group_indices = []
-            for group_col in group_cols:
+        # Reorder columns so that sort_by columns are on the left
+        if sort_cols:
+            # Get indices of sorting columns IN THE ORDER SPECIFIED
+            sort_indices = []
+            for sort_col in sort_cols:
                 for i, col in enumerate(self.matrix.columns):
-                    if col == group_col:
-                        group_indices.append(i)
+                    if col == sort_col:
+                        sort_indices.append(i)
                         break
 
             # Get indices of other columns
-            other_indices = [i for i, col in enumerate(self.matrix.columns) if col not in group_cols]
-
-            # Combine: grouping columns first (in specified order), then others
-            column_order = group_indices + other_indices
+            other_indices = [i for i, col in enumerate(self.matrix.columns) if col not in sort_cols]
+            # Combine: sorting columns first (in specified order), then others
+            column_order = sort_indices + other_indices
 
             # Reorder matrix columns and column names
             sorted_matrix_cols = sorted_matrix[:, column_order]
@@ -336,28 +336,28 @@ class Heatmap(Plot):
             reordered_columns = self.matrix.columns
 
         # Determine if we're using completeness mode
-        use_completeness = self.group_by_mode == "completeness" and self.group_by is not None
+        use_completeness = self.group_by_mode == "completeness" and self.sort_by_columns is not None
 
         if use_completeness:
-            # Calculate row-level completeness (percentage of present values per row)
-            row_completeness = np.mean(sorted_matrix_cols, axis=1)
+            # Calculate cell-level missingness (0 = present, 1 = missing)
+            # Invert the binary matrix: 1 becomes 0 (present), 0 becomes 1 (missing)
+            z_data = 1 - sorted_matrix_cols
 
-            # Create a matrix where each row has the same completeness value across all columns
-            z_data = np.tile(row_completeness[:, np.newaxis], (1, sorted_matrix_cols.shape[1]))
-
-            # Use a continuous colorscale from missing_color (0) to present_color (1)
-            colorscale = [[0, self.missing_color], [0.5, "#ffff00"], [1, self.present_color]]
+            # Use a continuous colorscale from present_color (0% missing) to missing_color (100% missing)
+            colorscale = [[0, self.present_color], [1, self.missing_color]]
 
             hover_template = self.hover_template or (
                 "<b>Row</b>: %{y}<br>"
                 "<b>Col</b>: %{x}<br>"
-                "<b>Completeness</b>: %{z:.1%}<extra></extra>"
+                "<b>Missing</b>: %{z:.0%}<extra></extra>"
             )
 
             colorbar_config = dict(
-                title="Completeness",
-                tickformat=".0%",
-                len=0.5,
+                title="% Missing",
+                tickmode='array',
+                tickvals=[0, 1],
+                ticktext=['0%', '100%'],
+                len=0.3,
             ) if self.show_scale else None
         else:
             # Binary mode (default)
@@ -401,11 +401,11 @@ class Heatmap(Plot):
             width=self.width,
         )
 
-        # Highlight grouping columns with visual indication
-        if group_cols:
-            # Group_by columns are now at the left (indices 0, 1)
-            # Add visual highlighting for each group_by column
-            for idx in range(len(group_cols)):
+        # Highlight sorting columns with visual indication
+        if sort_cols:
+            # Sort_by columns are now at the left (indices 0, 1)
+            # Add visual highlighting for each sort_by column
+            for idx in range(len(sort_cols)):
                 # Add a shape (rectangle) to highlight the column
                 fig.add_shape(
                     type="rect",

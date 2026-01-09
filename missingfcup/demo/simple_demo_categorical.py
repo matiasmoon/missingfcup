@@ -76,8 +76,8 @@ print("="*80)
 print("\n2.1 Grouping by Product Category")
 
 heatmap_cat = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],  # Custom order
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],  # Custom order
     title="Missing Patterns by Product Category",
     show_colorscale_legend=True,
     figure_size_pixels=(1000, 600)
@@ -88,8 +88,8 @@ heatmap_cat.show()
 print("\n2.2 Grouping by Rating (Ordinal)")
 
 heatmap_rating = missing.heatmap(
-    group_by="Rating",
-    group_categories=["Fair", "Good", "Excellent"],  # Ordinal order
+    sort_by_columns="Rating",
+    sort_categorical=["Fair", "Good", "Excellent"],  # Ordinal order
     title="Missing Patterns by Rating Level",
     show_colorscale_legend=True,
     figure_size_pixels=(1000, 600)
@@ -108,8 +108,8 @@ print("NEW FEATURE: Compare data quality across categorical groups")
 print("\n3.1 Binary Mode: Cell-Level View by Category")
 
 heatmap_binary = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="binary",  # Default: individual cells
     title="Binary Mode: Missing Cells by Category",
     show_colorscale_legend=True,
@@ -122,8 +122,8 @@ print("\n3.2 Completeness Mode: Overall Quality by Category")
 print("    NEW: Shows which categories have better data completeness")
 
 heatmap_comp = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",  # NEW: row completeness %
     title="Completeness Mode: Data Quality by Category",
     show_colorscale_legend=True,
@@ -164,8 +164,8 @@ print("NEW FEATURE: Filter out columns with too much missing data")
 print("\n4.1 Comparing: Filtered vs Unfiltered with Categorical Grouping")
 
 heatmap_filtered = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",
     ignore_high_missingness=True,  # Default: exclude ≥90% missing
     title="Filtered (≥90% missing excluded)",
@@ -174,8 +174,8 @@ heatmap_filtered = missing.heatmap(
 )
 
 heatmap_unfiltered = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",
     ignore_high_missingness=False,  # Include all columns
     title="Unfiltered (All columns)",
@@ -212,8 +212,8 @@ print("="*80)
 print("\n5.1 Three-Panel Comparison: Different Category Variables")
 
 heatmap_by_cat = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",
     title="By Product Category",
     show_colorscale_legend=True,
@@ -221,8 +221,8 @@ heatmap_by_cat = missing.heatmap(
 )
 
 heatmap_by_rating = missing.heatmap(
-    group_by="Rating",
-    group_categories=["Fair", "Good", "Excellent"],
+    sort_by_columns="Rating",
+    sort_categorical=["Fair", "Good", "Excellent"],
     group_by_mode="completeness",
     title="By Rating Level",
     show_colorscale_legend=True,
@@ -230,7 +230,7 @@ heatmap_by_rating = missing.heatmap(
 )
 
 heatmap_by_supplier = missing.heatmap(
-    group_by="Supplier",
+    sort_by_columns="Supplier",
     group_by_mode="completeness",
     title="By Supplier",
     show_colorscale_legend=True,
@@ -270,29 +270,29 @@ print("\n6.1 Four-Panel Categorical Analysis")
 
 panel = Panel([
     missing.heatmap(
-        group_by="Category",
-        group_categories=["Electronics", "Clothing", "Food"],
+        sort_by_columns="Category",
+        sort_categorical=["Electronics", "Clothing", "Food"],
         group_by_mode="binary",
         title="Category (Binary)",
         show_colorscale_legend=True
     ),
     missing.heatmap(
-        group_by="Category",
-        group_categories=["Electronics", "Clothing", "Food"],
+        sort_by_columns="Category",
+        sort_categorical=["Electronics", "Clothing", "Food"],
         group_by_mode="completeness",
         title="Category (Completeness)",
         show_colorscale_legend=True
     ),
     missing.heatmap(
-        group_by="Rating",
-        group_categories=["Fair", "Good", "Excellent"],
+        sort_by_columns="Rating",
+        sort_categorical=["Fair", "Good", "Excellent"],
         group_by_mode="binary",
         title="Rating (Binary)",
         show_colorscale_legend=True
     ),
     missing.heatmap(
-        group_by="Rating",
-        group_categories=["Fair", "Good", "Excellent"],
+        sort_by_columns="Rating",
+        sort_categorical=["Fair", "Good", "Excellent"],
         group_by_mode="completeness",
         title="Rating (Completeness)",
         show_colorscale_legend=True
@@ -313,8 +313,8 @@ print("\n7.1 Comparing: Different Category Orders")
 
 # Alphabetical order
 heatmap_alpha = missing.heatmap(
-    group_by="Category",
-    # No group_categories = pandas default (alphabetical)
+    sort_by_columns="Category",
+    # No sort_categorical = pandas default (alphabetical)
     group_by_mode="completeness",
     title="Alphabetical Order",
     show_colorscale_legend=True,
@@ -323,8 +323,8 @@ heatmap_alpha = missing.heatmap(
 
 # Custom logical order
 heatmap_logical = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],  # Logical order
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],  # Logical order
     group_by_mode="completeness",
     title="Logical Order (Electronics→Clothing→Food)",
     show_colorscale_legend=True,
@@ -360,8 +360,8 @@ print("="*80)
 print("\n8.1 All Features Combined for Categorical Data")
 
 heatmap_1 = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="binary",
     title="Binary + Filtered",
     show_colorscale_legend=True,
@@ -369,8 +369,8 @@ heatmap_1 = missing.heatmap(
 )
 
 heatmap_2 = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",
     title="Completeness + Filtered",
     show_colorscale_legend=True,
@@ -378,8 +378,8 @@ heatmap_2 = missing.heatmap(
 )
 
 heatmap_3 = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="binary",
     ignore_high_missingness=False,
     title="Binary + All Columns",
@@ -388,8 +388,8 @@ heatmap_3 = missing.heatmap(
 )
 
 heatmap_4 = missing.heatmap(
-    group_by="Category",
-    group_categories=["Electronics", "Clothing", "Food"],
+    sort_by_columns="Category",
+    sort_categorical=["Electronics", "Clothing", "Food"],
     group_by_mode="completeness",
     ignore_high_missingness=False,
     title="Completeness + All Columns",

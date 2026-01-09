@@ -9,10 +9,10 @@ missingfcup.egg-info/top_level.txt
 missingfcup/core/__init__.py
 missingfcup/core/matrix.py
 missingfcup/core/missingobject.py
-missingfcup/demo/__init__.py
-missingfcup/demo/demo_collisions.py
-missingfcup/demo/demo_matrix.py
+missingfcup/demo/demo_collisions_dataset.py
+missingfcup/demo/demo_groupby.py
 missingfcup/demo/simple_demo.py
+missingfcup/demo/simple_demo_categorical.py
 missingfcup/plots/__init__.py
 missingfcup/plots/barchart.py
 missingfcup/plots/heatmap.py

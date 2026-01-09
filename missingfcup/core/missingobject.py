@@ -146,8 +146,8 @@ class MissingObject:
 
         Grouped heatmap to reveal patterns:
         >>> missing.heatmap(
-        ...     group_by="age",
-        ...     group_direction="ascending"
+        ...     sort_by_columns="age",
+        ...     sort_direction="ascending"
         ... ).show()
 
         See Also
