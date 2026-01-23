@@ -19,6 +19,7 @@ missingfcup/demo/simple_demo_panel.py
 missingfcup/plots/Barchart.py
 missingfcup/plots/Heatmap.py
 missingfcup/plots/Panel.py
+missingfcup/plots/PatternBarChart.py
 missingfcup/plots/Plot.py
 missingfcup/plots/Scatterplot.py
 missingfcup/plots/__init__.py

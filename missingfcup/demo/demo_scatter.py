@@ -38,3 +38,8 @@ md.heatmap(
     metadata=metadata,
     title="Missingness heatmap (rows ordered by Ozone)",
 ).show()
+
+md.pattern_barchart(
+    title="Number of rows with same missing patterns",
+    max_patterns=10,
+).show()

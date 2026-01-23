@@ -54,6 +54,35 @@ class MissingData:
     def completeness(self) -> pd.Series:
         """Fraction of present values per column"""
         return 1 - self.column_missingness
+    
+    @property
+    def row_missing_pattern(self) -> pd.Series:
+        """
+        For each row, returns a string describing which columns are missing.
+        Example:
+        - "No values missing"
+        - "Ozone"
+        - "Ozone, Solar.R"
+        """
+
+        def pattern(row: pd.Series) -> str:
+            missing_cols = row.index[row].tolist()
+            if not missing_cols:
+                return "No values missing"
+            return ", ".join(missing_cols)
+
+        return self.missing_matrix.apply(pattern, axis=1)
+
+    def row_missing_pattern_counts(self, max_patterns: Optional[int] = None,) -> pd.Series:
+        """
+        Counts number of rows sharing the same missingness pattern.
+        """
+        counts = self.row_missing_pattern.value_counts()
+
+        if max_patterns is not None:
+            counts = counts.iloc[:max_patterns]
+
+        return counts
 
     def heatmap(
         self,
@@ -80,3 +109,16 @@ class MissingData:
     ):
         from ..plots.Scatterplot import ScatterPlot
         return ScatterPlot(self, x=x, y=y, metadata=metadata, **kwargs)
+    
+    def pattern_barchart(
+        self,
+        *,
+        title: Optional[str] = None,
+        max_patterns: Optional[int] = None,
+    ):
+        from ..plots.PatternBarChart import PatternBarChart
+        return PatternBarChart(
+            data=self,
+            title=title,
+            max_patterns=max_patterns,
+        )
