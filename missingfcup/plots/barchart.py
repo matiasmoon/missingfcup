@@ -1,111 +1,100 @@
 import plotly.graph_objects as go
+from typing import Optional, Literal, List, Dict
 import pandas as pd
-from typing import Optional, Literal
 
 from .Plot import Plot
 from ..core.MissingData import MissingData
-from ..core.ViewMetadata import ViewMetadata, OrderType, NumericOrder
 
 
 class BarChart(Plot):
     """
     Bar chart summarizing missingness per column.
-
-    Supports counts or percentages, vertical or horizontal orientation,
-    optional stacking (present vs missing), ordering via metadata,
-    and threshold-based highlighting.
     """
 
     def __init__(
         self,
         data: MissingData,
-        metadata: Optional[ViewMetadata] = None,
-        figure_size_pixels: tuple[int, int] = (900, 500),
+        selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
+        completeness_mode: Optional[Literal["most", "least"]] = None,
+        completeness_threshold: float = 0.0,
+        max_columns_by_completeness: int = 0,
+        max_columns: int = 50,
+        order_by: Optional[List[Dict]] = None,
         mode: Literal["count", "percentage"] = "count",
         orientation: Literal["vertical", "horizontal"] = "vertical",
         stacked: bool = False,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
         threshold: Optional[float] = None,
         threshold_color: str = "#ff7f0e",
         show_values: bool = True,
-        title: Optional[str] = None,
+        **kwargs,
     ):
-        self.data = data
-        self.metadata = metadata
+        super().__init__(data=data, **kwargs)
 
-        self.width, self.height = figure_size_pixels
+        self.selected_columns = selected_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
+        self.completeness_mode = completeness_mode
+        self.completeness_threshold = completeness_threshold
+        self.max_columns_by_completeness = max_columns_by_completeness
+        self.max_columns = max_columns
+        self.order_by = order_by
+
         self.mode = mode
         self.orientation = orientation
         self.stacked = stacked
 
-        self.missing_color = missing_color
-        self.present_color = present_color
-
         self.threshold = threshold
         self.threshold_color = threshold_color
         self.show_values = show_values
-        self.title = title
-
-        self._figure: Optional[go.Figure] = None
 
     # ------------------------------------------------------------------
-    # Ordering logic (shared with Heatmap)
+    # Data prep
     # ------------------------------------------------------------------
-    def _apply_ordering(self, df: pd.DataFrame) -> pd.DataFrame:
-        if self.metadata is None or not self.metadata.order_by:
-            return df
-
-        for spec in reversed(self.metadata.order_by):
-            if spec.type == OrderType.NUMERIC:
-                df = df.sort_values(
-                    spec.column,
-                    ascending=(spec.numeric_order == NumericOrder.ASC),
-                    kind="stable",
-                )
-            else:
-                cat = pd.Categorical(
-                    df[spec.column],
-                    categories=spec.category_order,
-                    ordered=True,
-                )
-                df = df.assign(**{spec.column: cat}).sort_values(
-                    spec.column,
-                    kind="stable",
-                )
-        return df
+    def _prepare_data(self) -> pd.DataFrame:
+        return self.data._filter_and_order(
+            selected_columns=self.selected_columns,
+            ignore_high_missingness=self.ignore_high_missingness,
+            high_missingness_threshold=self.high_missingness_threshold,
+            completeness_mode=self.completeness_mode,
+            completeness_threshold=self.completeness_threshold,
+            max_columns_by_completeness=self.max_columns_by_completeness,
+            max_columns=self.max_columns,
+            order_by=self.order_by,
+        )
 
     # ------------------------------------------------------------------
     # Figure construction
     # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
-        df = self._apply_ordering(self.data.data)
-
+        df = self._prepare_data()
         total_rows = len(df)
+
         missing_counts = df.isna().sum()
         present_counts = total_rows - missing_counts
 
         if self.mode == "percentage":
             missing_values = (missing_counts / total_rows) * 100
             present_values = 100 - missing_values
-            y_title = "% Missing"
             value_suffix = "%"
+            value_title = "% Missing"
         else:
             missing_values = missing_counts
             present_values = present_counts
-            y_title = "Count of Missing Values"
             value_suffix = ""
+            value_title = "Count of Missing Values"
 
         columns = missing_values.index.tolist()
 
-        # Threshold-based coloring
-        if self.threshold is not None:
-            colors = [
+        colors = (
+            [
                 self.threshold_color if v >= self.threshold else self.missing_color
                 for v in missing_values
             ]
-        else:
-            colors = self.missing_color
+            if self.threshold is not None
+            else self.missing_color
+        )
 
         fig = go.Figure()
 
@@ -133,25 +122,16 @@ class BarChart(Plot):
                     for v in missing_values
                 ],
                 textposition="auto" if self.show_values else None,
-                hovertemplate=(
-                    "<b>Column</b>: %{x}<br>"
-                    f"<b>Missing</b>: %{{y:.1f}}{value_suffix}<extra></extra>"
-                )
-                if self.orientation == "vertical"
-                else (
-                    "<b>Column</b>: %{y}<br>"
-                    f"<b>Missing</b>: %{{x:.1f}}{value_suffix}<extra></extra>"
-                ),
             )
 
+        # Axis titles
         fig.update_layout(
-            title=self.title or "Missing Values per Column",
-            xaxis_title="Column" if self.orientation == "vertical" else y_title,
-            yaxis_title=y_title if self.orientation == "vertical" else "Column",
-            width=self.width,
-            height=self.height,
-            showlegend=self.stacked,
+            xaxis_title="Column" if self.orientation == "vertical" else value_title,
+            yaxis_title=value_title if self.orientation == "vertical" else "Column",
         )
+
+        # Apply shared layout/theme
+        self._apply_base_layout(fig)
 
         return fig
 

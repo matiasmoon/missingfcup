@@ -1,71 +1,62 @@
 import plotly.graph_objects as go
 import pandas as pd
-from typing import Optional, Literal
+from typing import Optional, Literal, List, Dict
 
 from .Plot import Plot
 from ..core.MissingData import MissingData
-from ..core.ViewMetadata import ViewMetadata, OrderType, NumericOrder
 
 
 class Heatmap(Plot):
     """
-    Interactive missingness heatmap visualization.
+    Interactive missingness heatmap.
 
-    Displays a grid where each cell represents whether data is present or missing.
-    Rows correspond to records, columns correspond to variables.
-
-    Ordering and grouping logic is handled via metadata, keeping visualization
-    concerns separate from data logic.
+    Rows = observations
+    Columns = variables
+    Cell color indicates missing vs present
     """
 
     def __init__(
         self,
         data: MissingData,
-        metadata: Optional[ViewMetadata] = None,
-        figure_size_pixels: tuple[int, int] = (900, 600),
-        present_color: str = "#2ca02c",
-        missing_color: str = "#d62728",
-        show_colorscale_legend: bool = False,
-        title: Optional[str] = None,
-        group_by_mode: Literal["binary", "completeness"] = "binary",
+        *,
+        selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.95,
+        order_by: Optional[List[Dict]] = None,
+        show_colorscale: bool = False,
+        group_by_mode: Literal["binary", "missing"] = "binary",
+        max_rows: Optional[int] = 500,
+        **kwargs,
     ):
-        self.data = data
-        self.metadata = metadata
+        super().__init__(
+            data=data,
+            legend_title="Status" if show_colorscale else None,
+            **kwargs,
+        )
 
-        self.width, self.height = figure_size_pixels
-        self.present_color = present_color
-        self.missing_color = missing_color
-        self.show_scale = show_colorscale_legend
-        self.title = title
+        self.selected_columns = selected_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
+        self.order_by = order_by
+
+        self.show_colorscale = show_colorscale
         self.group_by_mode = group_by_mode
-
-        self._figure: Optional[go.Figure] = None
+        self.max_rows = max_rows
 
     # ------------------------------------------------------------------
-    # Ordering logic (delegated via metadata)
+    # Data preparation
     # ------------------------------------------------------------------
-    def _apply_ordering(self, df: pd.DataFrame) -> pd.DataFrame:
-        if self.metadata is None or not self.metadata.order_by:
-            return df
+    def _prepare_data(self) -> pd.DataFrame:
+        df = self.data._filter_and_order(
+            selected_columns=self.selected_columns,
+            ignore_high_missingness=self.ignore_high_missingness,
+            high_missingness_threshold=self.high_missingness_threshold,
+            order_by=self.order_by,
+        )
 
-        # Apply ordering specs in reverse for stable multi-column sorting
-        for spec in reversed(self.metadata.order_by):
-            if spec.type == OrderType.NUMERIC:
-                df = df.sort_values(
-                    spec.column,
-                    ascending=(spec.numeric_order == NumericOrder.ASC),
-                    kind="stable",
-                )
-            else:
-                cat = pd.Categorical(
-                    df[spec.column],
-                    categories=spec.category_order,
-                    ordered=True,
-                )
-                df = df.assign(**{spec.column: cat}).sort_values(
-                    spec.column,
-                    kind="stable",
-                )
+        # Row limiting (important for performance)
+        if self.max_rows and len(df) > self.max_rows:
+            df = df.iloc[: self.max_rows]
 
         return df
 
@@ -73,49 +64,52 @@ class Heatmap(Plot):
     # Figure construction
     # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
-        df = self._apply_ordering(self.data.data)
+        df = self._prepare_data()
 
-        # Missingness mask
         mask = df.isna()
-        values = (~mask).astype(int).to_numpy()
 
-        # Visualization mode
         if self.group_by_mode == "binary":
-            z = values
-            colorscale = [[0, self.missing_color], [1, self.present_color]]
+            z = (~mask).astype(int).to_numpy()
+            colorscale = [
+                [0.0, self.missing_color],
+                [1.0, self.present_color],
+            ]
+            colorbar_ticks = ["Missing", "Present"]
         else:
-            z = 1 - values
-            colorscale = [[0, self.present_color], [1, self.missing_color]]
+            z = mask.astype(int).to_numpy()
+            colorscale = [
+                [0.0, self.present_color],
+                [1.0, self.missing_color],
+            ]
+            colorbar_ticks = ["Present", "Missing"]
 
         fig = go.Figure(
-            go.Heatmap(
+            data=go.Heatmap(
                 z=z,
                 x=df.columns.tolist(),
                 y=[str(i) for i in df.index],
                 colorscale=colorscale,
-                showscale=self.show_scale,
                 zmin=0,
                 zmax=1,
+                showscale=self.show_colorscale,
                 colorbar=dict(
-                    tickmode="array",
                     tickvals=[0, 1],
-                    ticktext=["Missing", "Present"]
-                    if self.group_by_mode == "binary"
-                    else ["0%", "100%"],
-                    len=0.3,
+                    ticktext=colorbar_ticks,
+                    len=0.4,
                 )
-                if self.show_scale
+                if self.show_colorscale
                 else None,
             )
         )
 
+        # Axis labels
         fig.update_layout(
-            title=self.title or "Missingness Heatmap",
-            width=self.width,
-            height=self.height,
-            xaxis_title="",
-            yaxis_title="",
+            xaxis_title="Variables",
+            yaxis_title="Rows",
         )
+
+        # Apply shared layout/theme
+        self._apply_base_layout(fig)
 
         return fig
 

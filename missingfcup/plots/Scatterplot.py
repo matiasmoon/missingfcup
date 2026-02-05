@@ -1,16 +1,16 @@
 import plotly.graph_objects as go
 import pandas as pd
-from typing import Optional
 
 from .Plot import Plot
 from ..core.MissingData import MissingData
-from ..core.ViewMetadata import ViewMetadata
+
 
 class ScatterPlot(Plot):
     """
-    Scatter plot of two columns, colored by row-level missingness.
+    Scatter plot of two columns, highlighting missingness.
 
-    A point is considered "Missing" if either x or y is missing.
+    A point is considered missing if either x or y is missing.
+    Missing values are visualized using axis offsets.
     """
 
     def __init__(
@@ -18,67 +18,80 @@ class ScatterPlot(Plot):
         data: MissingData,
         x: str,
         y: str,
-        metadata: Optional[ViewMetadata] = None,
-        figure_size_pixels: tuple[int, int] = (900, 600),
-        missing_color: str = "#F8766D",
-        present_color: str = "#00BFC4",
         point_size: int = 8,
-        title: Optional[str] = None,
+        axis_padding: float = 0.05,
+        **kwargs,
     ):
-        self.data = data
+        super().__init__(
+            data=data,
+            legend_title="Status",
+            **kwargs,
+        )
         self.x = x
         self.y = y
-        self.metadata = metadata
-
-        self.width, self.height = figure_size_pixels
-        self.missing_color = missing_color
-        self.present_color = present_color
         self.point_size = point_size
-        self.title = title
+        self.axis_padding = axis_padding
 
-        self._figure: Optional[go.Figure] = None
-
-
+    # ------------------------------------------------------------------
+    # Figure construction
+    # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
         df = self.data.data
-
-        if self.metadata is not None:
-            df = self.metadata.apply(df)
 
         if self.x not in df.columns or self.y not in df.columns:
             raise ValueError(f"Columns '{self.x}' and '{self.y}' must exist")
 
-        df = df[[self.x, self.y]].copy()
+        x = df[self.x]
+        y = df[self.y]
 
-        # Masks
-        x_missing = df[self.x].isna()
-        y_missing = df[self.y].isna()
+        # Ensure numeric data
+        if not pd.api.types.is_numeric_dtype(df[self.x]):
+            raise TypeError(
+                f"ScatterPlot requires numeric x-axis. "
+                f"Column '{self.x}' has dtype {df[self.x].dtype}."
+            )
 
-        # Compute offsets (10% below data range)
-        def offset(series: pd.Series) -> float:
+        if not pd.api.types.is_numeric_dtype(df[self.y]):
+            raise TypeError(
+                f"ScatterPlot requires numeric y-axis. "
+                f"Column '{self.y}' has dtype {df[self.y].dtype}."
+            )
+
+        # Reuse cached missingness info
+        missing_matrix = self.data.missing_matrix
+        x_missing = missing_matrix[self.x]
+        y_missing = missing_matrix[self.y]
+        any_missing = x_missing | y_missing
+
+        # ------------------------------------------------------------------
+        # Offset computation (for missing visualization)
+        # ------------------------------------------------------------------
+        def compute_offset(series: pd.Series) -> float:
             s = series.dropna()
-            data_range = s.max() - s.min()
-            return s.min() - 0.1 * data_range
+            if s.empty:
+                return 0.0
+            span = s.max() - s.min() or 1.0
+            return s.min() - 0.1 * span
 
-        x_offset = offset(df[self.x])
-        y_offset = offset(df[self.y])
+        x_offset = compute_offset(x)
+        y_offset = compute_offset(y)
 
-        # Replace missings with offsets
-        plot_x = df[self.x].copy()
-        plot_y = df[self.y].copy()
+        plot_x = x.copy()
+        plot_y = y.copy()
 
         plot_x[x_missing] = x_offset
         plot_y[y_missing] = y_offset
 
         fig = go.Figure()
 
-        # Fully observed points
-        observed = ~(x_missing | y_missing)
+        # ------------------------------------------------------------------
+        # Present points
+        # ------------------------------------------------------------------
         fig.add_scatter(
-            x=plot_x[observed],
-            y=plot_y[observed],
+            x=plot_x[~any_missing],
+            y=plot_y[~any_missing],
             mode="markers",
-            name="Not Missing",
+            name="Present",
             marker=dict(
                 color=self.present_color,
                 size=self.point_size,
@@ -89,11 +102,12 @@ class ScatterPlot(Plot):
             ),
         )
 
-        # Missing points (x, y, or both)
-        missing = x_missing | y_missing
+        # ------------------------------------------------------------------
+        # Missing points
+        # ------------------------------------------------------------------
         fig.add_scatter(
-            x=plot_x[missing],
-            y=plot_y[missing],
+            x=plot_x[any_missing],
+            y=plot_y[any_missing],
             mode="markers",
             name="Missing",
             marker=dict(
@@ -108,24 +122,51 @@ class ScatterPlot(Plot):
             ),
         )
 
+        # ------------------------------------------------------------------
+        # Axis labels & interaction
+        # ------------------------------------------------------------------
         fig.update_layout(
-            title=self.title or f"{self.y} vs {self.x} (missing shown as offsets)",
             xaxis_title=self.x,
             yaxis_title=self.y,
-            width=self.width,
-            height=self.height,
-            legend_title="missing",
+            dragmode="pan",
         )
 
-        # Expand axes so offsets are visible
-        fig.update_xaxes(range=[x_offset, df[self.x].max()])
-        fig.update_yaxes(range=[y_offset, df[self.y].max()])
+        # ------------------------------------------------------------------
+        # Padded axis ranges (default zoom-out)
+        # ------------------------------------------------------------------
+        def padded_range(series: pd.Series, offset_val: float) -> list[float]:
+            s = series.dropna()
+            if s.empty:
+                return [offset_val - 1, offset_val + 1]
+
+            min_val = min(s.min(), offset_val)
+            max_val = s.max()
+            span = max_val - min_val or 1.0
+            pad = span * self.axis_padding
+
+            return [min_val - pad, max_val + pad]
+
+        fig.update_xaxes(range=padded_range(x, x_offset))
+        fig.update_yaxes(range=padded_range(y, y_offset))
+
+        # ------------------------------------------------------------------
+        # Shared layout/theme
+        # ------------------------------------------------------------------
+        self._apply_base_layout(fig)
 
         return fig
 
-
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
     @property
     def fig(self) -> go.Figure:
         if self._figure is None:
             self._figure = self._build_figure()
         return self._figure
+
+    def show(self):
+        self.fig.show()
+
+    def save(self, path: str):
+        self.fig.write_html(path)

@@ -2,7 +2,7 @@ Metadata-Version: 2.4
 Name: missingfcup
 Version: 0.1.0
 Summary: Python package to create visualizations that showcase missing values
-Author: Matias Luna
+Author-email: Matias Luna <matiasortizluna.contacto@gmail.com>
 License: MIT
 Keywords: missing-data,visualization,plotly,data-science,pandas
 Classifier: Development Status :: 3 - Alpha
