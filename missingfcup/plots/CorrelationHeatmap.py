@@ -6,7 +6,6 @@ import warnings
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class CorrelationHeatmap(Plot):
     """
     Heatmap showing correlation between column-level missingness.

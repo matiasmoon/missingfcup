@@ -5,7 +5,6 @@ from typing import Optional, Literal, List, Dict
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class Heatmap(Plot):
     """
     Interactive missingness heatmap.

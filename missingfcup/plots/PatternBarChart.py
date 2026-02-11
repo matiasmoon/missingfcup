@@ -5,7 +5,6 @@ from typing import Optional
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class PatternBarChart(Plot):
     """
     Bar chart showing frequency of row-level missingness patterns.

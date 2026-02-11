@@ -3,7 +3,6 @@ from typing import Optional
 import plotly.graph_objects as go
 from ..core.MissingData import MissingData
 
-
 class Plot(ABC):
     """Abstract base class for all visualizations."""
 

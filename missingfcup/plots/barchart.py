@@ -5,7 +5,6 @@ import pandas as pd
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class BarChart(Plot):
     """
     Bar chart summarizing missingness per column.

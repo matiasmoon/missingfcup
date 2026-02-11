@@ -4,7 +4,6 @@ import plotly.graph_objects as go
 
 from .Plot import Plot
 
-
 class Panel:
     """
     Create a multi-panel display combining multiple plots in a grid layout.

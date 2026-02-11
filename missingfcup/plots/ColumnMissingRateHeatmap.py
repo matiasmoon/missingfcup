@@ -6,7 +6,6 @@ import warnings
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class ColumnMissingRateHeatmap(Plot):
     """
     Heatmap showing missing rate per column.

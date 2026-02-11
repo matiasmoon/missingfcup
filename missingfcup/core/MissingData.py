@@ -1,12 +1,15 @@
-from matplotlib.pyplot import title
 import pandas as pd
 import numpy as np
-from typing import Optional
 from functools import cached_property
-from typing import List, Optional, Literal, Dict
+from typing import Optional
+
+from pandas.api.types import is_numeric_dtype
 
 class MissingData:
-    """Core object that owns all missingness-related logic."""
+    """
+    Analytical interface for inspecting and quantifying missing values in a pandas DataFrame.
+    This class centralizes all missing-value related computations and exposes consistent, cached metrics at the column, row, and dataset levels.
+    """
 
     def __init__(self, df: pd.DataFrame):
         if not isinstance(df, pd.DataFrame):
@@ -16,281 +19,573 @@ class MissingData:
 
         self.data = df
 
-    # ------------------------------------------------------------------
-    # Core representations
-    # ------------------------------------------------------------------
+    # MARK: - Core Properties
 
     @cached_property
-    def missing_matrix(self) -> pd.DataFrame:
-        """Boolean matrix: True = missing, False = present."""
+    def missing_mask(self) -> pd.DataFrame:
+        """
+        Boolean mask of missing values.
+
+        True indicates a missing value.
+        False indicates a present value.
+        """
         return self.data.isna()
 
     @cached_property
-    def presence_matrix(self) -> np.ndarray:
-        """Binary matrix: 1 = present, 0 = missing."""
-        return (~self.missing_matrix).to_numpy(np.uint8)
+    def observed_mask(self) -> np.ndarray:
+        """
+        Binary matrix representing observed values.
+
+        0 indicates a missing value.
+        1 indicates a present value.
+        """
+        return (~self.missing_mask).to_numpy(np.uint8)
 
     @property
-    def column_names(self) -> list[str]:
-        """List of column names in the dataset."""
+    def columns(self) -> list[str]:
         return self.data.columns.tolist()
 
-    # ------------------------------------------------------------------
-    # Column / row summaries
-    # ------------------------------------------------------------------
+    @property
+    def number_of_rows(self) -> int:
+        return len(self.data)
+
+    @property
+    def number_of_columns(self) -> int:
+        return self.data.shape[1]
+
+    # MARK: - Column Metrics
 
     @cached_property
-    def missingness_per_column(self) -> pd.Series:
-        """Fraction of missing values per column."""
-        return self.missing_matrix.mean()
+    def column_missing_rate(self) -> pd.Series:
+        """
+        Proportion of missing values per column.
+        
+        Returns values between 0 and 1.
+        1.0 indicates all values in the column are missing.
+        0.0 indicates no missing values in the column.
+        """
+        return self.missing_mask.mean()
 
     @cached_property
-    def missingness_per_row(self) -> pd.Series:
-        """Fraction of missing values per row."""
-        return self.missing_matrix.mean(axis=1)
+    def column_missing_count(self) -> pd.Series:
+        """
+        Number of missing values per column.
+        """
+        return self.missing_mask.sum()
 
     @cached_property
-    def missing_count_per_column(self) -> pd.Series:
-        """Number of missing values per column."""
-        return self.missing_matrix.sum()
+    def column_missing_percent(self) -> pd.Series:
+        """
+        Percentage of missing values per column.
+        """
+        return self.column_missing_rate * 100
 
     @cached_property
-    def missing_percentage_per_column(self) -> pd.Series:
-        """Percentage of missing values per column."""
-        return self.missingness_per_column * 100
+    def column_completeness(self) -> pd.Series:
+        """
+        Proportion of observed (non-missing) values per column.
+        """
+        return 1 - self.column_missing_rate
 
     @cached_property
-    def completeness_per_column(self) -> pd.Series:
-        """Fraction of present (non-missing) values per column."""
-        return 1 - self.missingness_per_column
+    def columns_complete(self) -> pd.Index:
+        """
+        Columns with no missing values.
+        """
+        return self.column_missing_count.loc[lambda s: s == 0].index
+
+    # MARK: - Row Metrics
 
     @cached_property
-    def total_missingness(self) -> float:
-        """Overall fraction of missing values in the dataset."""
-        return self.missing_matrix.values.mean()
+    def row_missing_rate(self) -> pd.Series:
+        """
+        Proportion of missing values per row.
+        
+        Returns values between 0 and 1.
+        1.0 indicates all values in the row are missing.
+        0.0 indicates no missing values in the row.
+        """
+        return self.missing_mask.mean(axis=1)
 
     @cached_property
-    def has_missing_per_row(self) -> pd.Series:
-        """Boolean indicator of whether each row contains any missing values."""
-        return self.missing_matrix.any(axis=1)
+    def row_missing_count(self) -> pd.Series:
+        """
+        Number of missing values per row.
+        """
+        return self.missing_mask.sum(axis=1)
 
     @cached_property
-    def complete_rows(self) -> pd.Index:
-        """Index of rows with no missing values."""
-        return self.has_missing_per_row.loc[lambda s: ~s].index
+    def row_missing_percent(self) -> pd.Series:
+        """
+        Percentage of missing values per row.
+        """
+        return self.row_missing_rate * 100
 
     @cached_property
-    def complete_columns(self) -> pd.Index:
-        """Index of columns with no missing values."""
-        return self.missing_matrix.any(axis=0).loc[lambda s: ~s].index
+    def row_completeness(self) -> pd.Series:
+        """
+        Proportion of observed (non-missing) values per row.
+        """
+        return 1 - self.row_missing_rate
 
-    # ------------------------------------------------------------------
-    # Pattern analysis helpers
-    # ------------------------------------------------------------------
+    @cached_property
+    def rows_complete(self) -> pd.Index:
+        """
+        Index labels of rows containing no missing values.
+        """
+        return self.row_missing_count.loc[lambda s: s == 0].index
 
-    def missingness_correlation(self) -> pd.DataFrame:
-        """Correlation matrix of missingness between columns."""
-        return self.missing_matrix.corr()
+    @cached_property
+    def rows_with_missing(self) -> pd.Index:
+        """
+        Rows containing at least one missing value.
+        """
+        return self.row_missing_count.loc[lambda s: s > 0].index
 
-    def missing_patterns_per_row(self) -> pd.Series:
-        """Human-readable description of which columns are missing per row."""
-        return self.missing_matrix.apply(
-            lambda row: (
-                "No values missing"
-                if not row.any()
-                else ", ".join(row.index[row])
-            ),
+    # MARK: - Dataset-Level Metrics
+
+    @cached_property
+    def total_missing_rate(self) -> float:
+        """
+        Overall fraction of missing values in the dataset.
+        Represents the density of missingness across the entire matrix.
+        """
+        return self.missing_mask.values.mean()
+
+    @cached_property
+    def total_missing_count(self) -> int:
+        """
+        Total number of missing values in the dataset.
+        """
+        return int(self.missing_mask.values.sum())
+
+    # MARK: - Pattern Analysis
+    @cached_property
+    def missing_pattern_in_rows(self) -> pd.Series:
+        """
+        For each row, returns a tuple of column names that are missing.
+
+        Two rows share the same missing pattern if they are missing values in the exact same set of columns.
+
+        Identifies the columns where there is missing values for every row.
+        Rows with no missing values will have an empty tuple.
+        """
+        return self.missing_mask.apply(
+            lambda row: tuple(row.index[row]),
             axis=1,
         )
 
-    def missing_pattern_counts_per_row(
-        self, max_patterns: Optional[int] = None
-    ) -> pd.Series:
-        """Count how many rows share the same missingness pattern."""
-        counts = self.missing_patterns_per_row().value_counts()
+    @cached_property
+    def missing_pattern_in_rows_unique(self) -> pd.Index:
+        """
+        Returns the unique row-level missingness patterns observed in the dataset.
+        """
+        return self.missing_pattern_in_rows.unique()
+
+    def missing_pattern_counts(self, max_patterns: Optional[int] = None) -> pd.Series:
+        """
+        Return counts of row-level missingness patterns.
+
+        Parameters
+        ----------
+        max_patterns : int, optional
+            Limit the output to the top `max_patterns` most frequent patterns if provided.
+
+        Returns
+        -------
+        pandas.Series
+            Pattern frequencies sorted in descending order.
+
+        Examples
+        --------
+        - With `max_patterns=3`, only the three most common patterns are returned.
+        """
+        counts = self.missing_pattern_in_rows.value_counts()
         return counts if max_patterns is None else counts.head(max_patterns)
 
-    # ------------------------------------------------------------------
-    # Filtering helpers
-    # ------------------------------------------------------------------
-
-    def drop_columns_above_missingness(self, threshold: float) -> pd.DataFrame:
-        """Drop columns whose missingness fraction exceeds a threshold."""
-        cols = self.missingness_per_column <= threshold
-        return self.data.loc[:, cols]
-
-    def drop_rows_above_missingness(self, threshold: float) -> pd.DataFrame:
-        """Drop rows whose missingness fraction exceeds a threshold."""
-        rows = self.missingness_per_row <= threshold
-        return self.data.loc[rows]
-
-    # ------------------------------------------------------------------
-    # Filtering & ordering helpers
-    # ------------------------------------------------------------------
-    def _filter_and_order(
-        self,
-        selected_columns: Optional[List[str]] = None,
-        ignore_high_missingness: bool = True,
-        high_missingness_threshold: float = 0.9,
-        completeness_mode: Optional[Literal["most", "least"]] = None,
-        completeness_threshold: float = 0.0,
-        max_columns_by_completeness: int = 0,
-        max_columns: int = 50,
-        order_by: Optional[List[Dict]] = None,
-    ) -> pd.DataFrame:
+    def missing_correlation(self) -> pd.DataFrame:
         """
-        Filter, limit, and order the dataset before plotting.
+        The Pearson correlation matrix of column nullity masks.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Correlation coefficients where values indicates:
+            1.0 columns always miss together
+            0 independence
+            - 1 when one is present while the other is missing
+
+        Examples
+        --------
+        - Columns that always go missing together will have correlation values of 1.0.
         """
-        df = self.data.copy()
-        missing_fraction = df.isna().mean()
-        completeness = 1 - missing_fraction
+        return self.missing_mask.corr()
 
-        # High missingness exclusion
-        if ignore_high_missingness:
-            keep = missing_fraction < high_missingness_threshold
-            df = df.loc[:, keep]
+    def perfectly_correlated_missing_columns(self) -> list[tuple[str, str]]:
+        """
+        Return column pairs whose missingness patterns are perfectly correlated.
 
-        # Column selection
-        if selected_columns:
-            cols = [c for c in selected_columns if c in df.columns]
-            df = df[cols]
+        Returns
+        -------
+        list[tuple[str, str]]
+            Tuples of column names with a missingness correlation coefficient of 1.0.
 
-        # Completeness-based filtering
-        if completeness_mode:
-            if completeness_mode == "most":
-                df = df.loc[:, completeness >= completeness_threshold]
-                if max_columns_by_completeness > 0:
-                    idx = np.argsort(completeness)[-max_columns_by_completeness:]
-                    df = df.iloc[:, np.sort(idx)]
-            elif completeness_mode == "least":
-                df = df.loc[:, completeness <= completeness_threshold]
-                if max_columns_by_completeness > 0:
-                    idx = np.argsort(completeness)[:max_columns_by_completeness]
-                    df = df.iloc[:, np.sort(idx)]
+        Examples
+        --------
+        - Identifies `(col_a, col_b)` when both columns are missing exactly the same cells.
+        """
+        corr = self.missing_correlation()
+        pairs = []
+        cols = corr.columns
 
-        # Max columns limit
-        if df.shape[1] > max_columns:
-            df = df.iloc[:, :max_columns]
+        for i in range(len(cols)):
+            for j in range(i + 1, len(cols)):
+                if corr.iloc[i, j] == 1:
+                    pairs.append((cols[i], cols[j]))
 
-        # Ordering
-        if order_by:
-            for spec in reversed(order_by):
-                col = spec["column"]
-                ascending = spec.get("numeric_order", "asc") == "asc"
-                if "ascending" in spec:
-                    ascending = bool(spec["ascending"])
+        return pairs
 
-                if col == "__missing__":
-                    missing_fraction = df.isna().mean()
-                    ordered_cols = missing_fraction.sort_values(
-                        ascending=ascending, kind="stable"
-                    ).index
-                    df = df.loc[:, ordered_cols]
-                    continue
+    # MARK: - Filtering Utilities
 
-                if col == "__column__":
-                    ordered_cols = sorted(df.columns, reverse=not ascending)
-                    df = df.loc[:, ordered_cols]
-                    continue
+    def rows_above_missing_threshold(self, threshold: float) -> pd.Index:
+        """
+        Return rows whose missing rate exceeds a specified threshold.
 
-                if spec["type"] == "numeric":
-                    df = df.sort_values(col, ascending=ascending, kind="stable")
-                elif spec["type"] == "categorical":
-                    cat = pd.Categorical(
-                        df[col], categories=spec["category_order"], ordered=True
-                    )
-                    df = df.assign(**{col: cat}).sort_values(col, kind="stable")
+        Parameters
+        ----------
+        threshold : float
+            Proportion of allowed missing values in [0, 1]; rows with a missing rate strictly greater than this value are returned.
 
-        return df
+        Returns
+        -------
+        pandas.Index
+            Index labels of rows exceeding the threshold.
 
-    # ------------------------------------------------------------------
-    # Plot functions
-    # ------------------------------------------------------------------
+        Examples
+        --------
+        - 0.2 → rows missing more than 20% of their values
+        - 0.5 → rows missing more than half their values
+        """
+        if not 0 <= threshold <= 1:
+            raise ValueError("threshold must be between 0 and 1")
+        return self.row_missing_rate.loc[lambda s: s > threshold].index
 
-    def _plot(self, cls, *args, **kwargs):
-        """Instantiate a plot object"""
-        return cls(self, *args, **kwargs)
+    def columns_above_missing_threshold(self, threshold: float) -> pd.Index:
+        """
+        Return columns whose missing rate exceeds a specified threshold.
 
-    def barchart(
-        self,
-        selected_columns: Optional[List[str]] = None,
-        ignore_high_missingness: bool = True,
-        high_missingness_threshold: float = 0.9,
-        completeness_mode: Optional[Literal["most", "least"]] = None,
-        completeness_threshold: float = 0.0,
-        max_columns_by_completeness: int = 0,
-        max_columns: int = 50,
-        order_by: Optional[List[Dict]] = None,
-        mode: Literal["count", "percentage"] = "count",
-        orientation: Literal["vertical", "horizontal"] = "vertical",
-        stacked: bool = False,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
-        threshold: Optional[float] = None,
-        threshold_color: str = "#ff7f0e",
-        show_values: bool = True,
-        title: Optional[str] = None,
-    ):
-        """Bar chart of missingness per column"""
-        from ..plots.Barchart import BarChart
-        return self._plot(
-            BarChart,
-            selected_columns=selected_columns,
-            ignore_high_missingness=ignore_high_missingness,
-            high_missingness_threshold=high_missingness_threshold,
-            completeness_mode=completeness_mode,
-            completeness_threshold=completeness_threshold,
-            max_columns_by_completeness=max_columns_by_completeness,
-            max_columns=max_columns,
-            order_by=order_by,
-            mode=mode,
-            orientation=orientation,
-            stacked=stacked,
-            missing_color=missing_color,
-            present_color=present_color,
-            threshold=threshold,
-            threshold_color=threshold_color,
-            show_values=show_values,
-            title=title,
-        )
+        Parameters
+        ----------
+        threshold : float
+            Proportion of allowed missing values in [0, 1]; columns with a missing rate strictly greater than this value are returned.
 
-    def heatmap(self, **kwargs):
-        """Heatmap of missingness"""
-        from ..plots.Heatmap import Heatmap
-        return self._plot(Heatmap, **kwargs)
+        Returns
+        -------
+        pandas.Index
+            Index labels of columns exceeding the threshold.
 
-    def scatterplot(self, x: str, y: str, *, point_size: int = 8, axis_padding: float = 0.05, title: Optional[str] = None, **kwargs):
-        """Scatter plot of two columns, highlighting missingness."""
-        from ..plots.Scatterplot import ScatterPlot
-        return self._plot(ScatterPlot,x=x, y=y, point_size=point_size, axis_padding=axis_padding, title=title, **kwargs)
+        Examples
+        --------
+        - 0.2 → columns missing more than 20% of their values
+        - 0.5 → columns missing more than half their values
+        """
+        if not 0 <= threshold <= 1:
+            raise ValueError("threshold must be between 0 and 1")
+        return self.column_missing_rate.loc[lambda s: s > threshold].index
 
-    def pattern_barchart(self, *, title: Optional[str] = None, max_patterns: Optional[int] = None):
-        """Bar chart summarizing common missingness patterns"""
-        from ..plots.PatternBarChart import PatternBarChart
-        return self._plot(PatternBarChart, title=title, max_patterns=max_patterns)
+    # # MARK: - Missingness Mechanism Diagnostics
+
+    # @staticmethod
+    # def _cramers_v(table: pd.DataFrame) -> float:
+    #     """
+    #     Compute Cramer's V for a contingency table.
+    #     """
+    #     if table.empty:
+    #         return float("nan")
+    #     observed = table.to_numpy(dtype=float)
+    #     n = observed.sum()
+    #     if n == 0:
+    #         return float("nan")
+    #     row_sum = observed.sum(axis=1, keepdims=True)
+    #     col_sum = observed.sum(axis=0, keepdims=True)
+    #     expected = row_sum @ col_sum / n
+    #     with np.errstate(divide="ignore", invalid="ignore"):
+    #         chi2 = np.nansum((observed - expected) ** 2 / expected)
+    #     r, c = observed.shape
+    #     k = min(r - 1, c - 1)
+    #     if k <= 0:
+    #         return float("nan")
+    #     return float(np.sqrt(chi2 / (n * k)))
+
+    # def missingness_associations(
+    #     self,
+    #     target_column: str,
+    #     *,
+    #     max_categories: int = 20,
+    #     min_non_null: int = 30,
+    # ) -> pd.DataFrame:
+    #     """
+    #     Measure associations between a target column's missingness and other columns.
+
+    #     This is a diagnostic heuristic: strong associations suggest MAR; weak associations
+    #     may indicate MCAR, but MNAR cannot be confirmed from observed data alone.
+
+    #     Parameters
+    #     ----------
+    #     target_column : str
+    #         Column whose missingness will be used as the target indicator.
+    #     max_categories : int, optional
+    #         Maximum number of categories for categorical predictors.
+    #     min_non_null : int, optional
+    #         Minimum non-null observations required for a predictor to be considered.
+
+    #     Returns
+    #     -------
+    #     pandas.DataFrame
+    #         Predictor-level associations sorted by absolute strength.
+    #     """
+    #     if target_column not in self.data.columns:
+    #         raise KeyError(f"Column '{target_column}' not found in data.")
+
+    #     missing_indicator = self.data[target_column].isna().astype(np.int8)
+    #     if missing_indicator.nunique() < 2:
+    #         return pd.DataFrame(
+    #             columns=["predictor", "predictor_type", "metric", "value", "n"]
+    #         )
+
+    #     results: list[dict[str, object]] = []
+    #     for column in self.data.columns:
+    #         if column == target_column:
+    #             continue
+    #         series = self.data[column]
+    #         mask = series.notna()
+    #         if int(mask.sum()) < min_non_null:
+    #             continue
+
+    #         if is_numeric_dtype(series):
+    #             valid = mask
+    #             x = series.loc[valid]
+    #             y = missing_indicator.loc[valid]
+    #             if y.nunique() < 2 or x.nunique(dropna=True) < 2:
+    #                 continue
+    #             value = x.corr(y)
+    #             if pd.isna(value):
+    #                 continue
+    #             results.append(
+    #                 {
+    #                     "predictor": column,
+    #                     "predictor_type": "numeric",
+    #                     "metric": "pearson_r",
+    #                     "value": float(value),
+    #                     "n": int(valid.sum()),
+    #                 }
+    #             )
+    #         else:
+    #             nunique = series.nunique(dropna=True)
+    #             if nunique == 0 or nunique > max_categories:
+    #                 continue
+    #             ct = pd.crosstab(missing_indicator, series, dropna=True)
+    #             if ct.shape[0] < 2 or ct.shape[1] < 2:
+    #                 continue
+    #             value = self._cramers_v(ct)
+    #             if pd.isna(value):
+    #                 continue
+    #             results.append(
+    #                 {
+    #                     "predictor": column,
+    #                     "predictor_type": "categorical",
+    #                     "metric": "cramers_v",
+    #                     "value": float(value),
+    #                     "n": int(ct.to_numpy().sum()),
+    #                 }
+    #             )
+
+    #     associations = pd.DataFrame(results)
+    #     if associations.empty:
+    #         return associations
+    #     associations = associations.assign(abs_value=associations["value"].abs())
+    #     return associations.sort_values("abs_value", ascending=False).drop(
+    #         columns="abs_value"
+    #     )
+
+    # def missingness_mechanism_summary(
+    #     self,
+    #     *,
+    #     corr_threshold: float = 0.2,
+    #     cramer_v_threshold: float = 0.2,
+    #     max_categories: int = 20,
+    #     min_non_null: int = 30,
+    # ) -> pd.DataFrame:
+    #     """
+    #     Summarize evidence for MCAR/MAR for each column with missing values.
+
+    #     Notes
+    #     -----
+    #     - Strong associations with observed variables suggest MAR.
+    #     - Weak associations may indicate MCAR, but this is not conclusive.
+    #     - MNAR cannot be verified from observed data alone.
+    #     """
+    #     summaries: list[dict[str, object]] = []
+    #     for column, rate in self.column_missing_rate.items():
+    #         if rate == 0:
+    #             continue
+    #         associations = self.missingness_associations(
+    #             column,
+    #             max_categories=max_categories,
+    #             min_non_null=min_non_null,
+    #         )
+    #         if associations.empty:
+    #             summaries.append(
+    #                 {
+    #                     "column": column,
+    #                     "missing_rate": float(rate),
+    #                     "strongest_association": None,
+    #                     "strongest_value": None,
+    #                     "conclusion": "Insufficient evidence (MCAR possible; MNAR not testable)",
+    #                 }
+    #             )
+    #             continue
+
+    #         top = associations.iloc[0]
+    #         threshold = (
+    #             corr_threshold
+    #             if top["metric"] == "pearson_r"
+    #             else cramer_v_threshold
+    #         )
+    #         conclusion = (
+    #             "MAR likely (missingness associated with observed variables)"
+    #             if abs(top["value"]) >= threshold
+    #             else "Weak associations (MCAR possible)"
+    #         )
+    #         summaries.append(
+    #             {
+    #                 "column": column,
+    #                 "missing_rate": float(rate),
+    #                 "strongest_association": top["predictor"],
+    #                 "strongest_value": float(top["value"]),
+    #                 "conclusion": conclusion,
+    #             }
+    #         )
+
+    #     summary = pd.DataFrame(summaries)
+    #     if summary.empty:
+    #         return summary
+    #     return summary.sort_values("missing_rate", ascending=False)
+
+    # MARK: - Filtering helpers
+
+    # def drop_columns_above_missingness(self, threshold: float) -> pd.DataFrame:
+    #     """Drop columns whose missingness fraction exceeds a threshold."""
+    #     cols = self.missingness_per_column <= threshold
+    #     return self.data.loc[:, cols]
+
+    # def drop_rows_above_missingness(self, threshold: float) -> pd.DataFrame:
+    #     """Drop rows whose missingness fraction exceeds a threshold."""
+    #     rows = self.missingness_per_row <= threshold
+    #     return self.data.loc[rows]
+
+    # def _filter_and_order(
+    #     self,
+    #     selected_columns: Optional[List[str]] = None,
+    #     ignore_high_missingness: bool = True,
+    #     high_missingness_threshold: float = 0.9,
+    #     completeness_mode: Optional[Literal["most", "least"]] = None,
+    #     completeness_threshold: float = 0.0,
+    #     max_columns_by_completeness: int = 0,
+    #     max_columns: int = 50,
+    #     order_by: Optional[List[Dict]] = None,
+    # ) -> pd.DataFrame:
+    #     """
+    #     Filter, limit, and order the dataset before plotting.
+    #     """
+    #     df = self.data.copy()
+    #     missing_fraction = df.isna().mean()
+    #     completeness = 1 - missing_fraction
+
+    #     # High missingness exclusion
+    #     if ignore_high_missingness:
+    #         keep = missing_fraction < high_missingness_threshold
+    #         df = df.loc[:, keep]
+
+    #     # Column selection
+    #     if selected_columns:
+    #         cols = [c for c in selected_columns if c in df.columns]
+    #         df = df[cols]
+
+    #     # Completeness-based filtering
+    #     if completeness_mode:
+    #         if completeness_mode == "most":
+    #             df = df.loc[:, completeness >= completeness_threshold]
+    #             if max_columns_by_completeness > 0:
+    #                 idx = np.argsort(completeness)[-max_columns_by_completeness:]
+    #                 df = df.iloc[:, np.sort(idx)]
+    #         elif completeness_mode == "least":
+    #             df = df.loc[:, completeness <= completeness_threshold]
+    #             if max_columns_by_completeness > 0:
+    #                 idx = np.argsort(completeness)[:max_columns_by_completeness]
+    #                 df = df.iloc[:, np.sort(idx)]
+
+    #     # Max columns limit
+    #     if df.shape[1] > max_columns:
+    #         df = df.iloc[:, :max_columns]
+
+    #     # Ordering
+    #     if order_by:
+    #         for spec in reversed(order_by):
+    #             col = spec["column"]
+    #             ascending = spec.get("numeric_order", "asc") == "asc"
+    #             if "ascending" in spec:
+    #                 ascending = bool(spec["ascending"])
+
+    #             if col == "__missing__":
+    #                 missing_fraction = df.isna().mean()
+    #                 ordered_cols = missing_fraction.sort_values(
+    #                     ascending=ascending, kind="stable"
+    #                 ).index
+    #                 df = df.loc[:, ordered_cols]
+    #                 continue
+
+    #             if col == "__column__":
+    #                 ordered_cols = sorted(df.columns, reverse=not ascending)
+    #                 df = df.loc[:, ordered_cols]
+    #                 continue
+
+    #             if spec["type"] == "numeric":
+    #                 df = df.sort_values(col, ascending=ascending, kind="stable")
+    #             elif spec["type"] == "categorical":
+    #                 cat = pd.Categorical(
+    #                     df[col], categories=spec["category_order"], ordered=True
+    #                 )
+    #                 df = df.assign(**{col: cat}).sort_values(col, kind="stable")
+
+    #     return df
+
+    # MARK: - Plot functions
+
+    # def _plot(self, cls, *args, **kwargs):
+    #     """Instantiate a plot object"""
+    #     return cls(self, *args, **kwargs)
+
+    # TODO: Implement barchart method
+    # def barchart(self):
+    #    return 
+
+    # TODO: Implement heatmap method
+    # def heatmap(self, **kwargs):
+    #    return
+
+    # TODO: Implement scatterplot method
+    # def scatterplot(self, x: str, y: str, *, point_size: int = 8, axis_padding: float = 0.05, title: Optional[str] = None, **kwargs):
+    #    return
+
+    # TODO: Implement pattern_barchart method
+    # def pattern_barchart(self, *, title: Optional[str] = None, max_patterns: Optional[int] = None):
+    #    return
     
-    def missingness_correlation_heatmap(
-        self,
-        selected_columns: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        **kwargs,
-        ):
-        """Heatmap of correlation between column missingness patterns"""
-        from ..plots.CorrelationHeatmap import CorrelationHeatmap
-        return self._plot(CorrelationHeatmap, selected_columns=selected_columns, title=title, **kwargs,)
+    # TODO: Implement missingness_correlation_heatmap method
+    # def missingness_correlation_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs, ):
+    #    return
     
-    def column_missing_rate_heatmap(
-        self,
-        selected_columns: Optional[List[str]] = None,
-        title: Optional[str] = None,
-        **kwargs,
-    ):
-        """Heatmap showing missing rate per column."""
-        from ..plots.ColumnMissingRateHeatmap import ColumnMissingRateHeatmap
-
-        return self._plot(
-            ColumnMissingRateHeatmap,
-            selected_columns=selected_columns,
-            title=title,
-            **kwargs,
-        )
+    # TODO: Implement column_missing_rate_heatmap method
+    # def column_missing_rate_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs,):
+    #    return

@@ -4,7 +4,6 @@ import pandas as pd
 from .Plot import Plot
 from ..core.MissingData import MissingData
 
-
 class ScatterPlot(Plot):
     """
     Scatter plot of two columns, highlighting missingness.
