@@ -28,7 +28,7 @@ def main():
     data = MissingData(df)
 
     print(f"Rows: {df.shape[0]} | Columns: {df.shape[1]}")
-    print(f"Overall missingness: {data.total_missingness:.2%}")
+    print(f"Overall missingness: {data.total_missing_rate:.2%}")
 
     chart = PatternBarChart(
         data=data,

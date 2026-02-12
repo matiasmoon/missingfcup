@@ -1,9 +1,11 @@
 import pandas as pd
 import numpy as np
 from functools import cached_property
-from typing import Optional
+from typing import Optional, List, Dict, Literal, TYPE_CHECKING
 
 from pandas.api.types import is_numeric_dtype
+if TYPE_CHECKING:
+    from ..plots.Barchart import MissingCountBarChart
 
 class MissingData:
     """
@@ -72,6 +74,13 @@ class MissingData:
         Number of missing values per column.
         """
         return self.missing_mask.sum()
+
+    @cached_property
+    def column_present_count(self) -> pd.Series:
+        """
+        Number of observed (non-missing) values per column.
+        """
+        return self.number_of_rows - self.column_missing_count
 
     @cached_property
     def column_missing_percent(self) -> pd.Series:
@@ -472,103 +481,44 @@ class MissingData:
     #         return summary
     #     return summary.sort_values("missing_rate", ascending=False)
 
-    # MARK: - Filtering helpers
-
-    # def drop_columns_above_missingness(self, threshold: float) -> pd.DataFrame:
-    #     """Drop columns whose missingness fraction exceeds a threshold."""
-    #     cols = self.missingness_per_column <= threshold
-    #     return self.data.loc[:, cols]
-
-    # def drop_rows_above_missingness(self, threshold: float) -> pd.DataFrame:
-    #     """Drop rows whose missingness fraction exceeds a threshold."""
-    #     rows = self.missingness_per_row <= threshold
-    #     return self.data.loc[rows]
-
-    # def _filter_and_order(
-    #     self,
-    #     selected_columns: Optional[List[str]] = None,
-    #     ignore_high_missingness: bool = True,
-    #     high_missingness_threshold: float = 0.9,
-    #     completeness_mode: Optional[Literal["most", "least"]] = None,
-    #     completeness_threshold: float = 0.0,
-    #     max_columns_by_completeness: int = 0,
-    #     max_columns: int = 50,
-    #     order_by: Optional[List[Dict]] = None,
-    # ) -> pd.DataFrame:
-    #     """
-    #     Filter, limit, and order the dataset before plotting.
-    #     """
-    #     df = self.data.copy()
-    #     missing_fraction = df.isna().mean()
-    #     completeness = 1 - missing_fraction
-
-    #     # High missingness exclusion
-    #     if ignore_high_missingness:
-    #         keep = missing_fraction < high_missingness_threshold
-    #         df = df.loc[:, keep]
-
-    #     # Column selection
-    #     if selected_columns:
-    #         cols = [c for c in selected_columns if c in df.columns]
-    #         df = df[cols]
-
-    #     # Completeness-based filtering
-    #     if completeness_mode:
-    #         if completeness_mode == "most":
-    #             df = df.loc[:, completeness >= completeness_threshold]
-    #             if max_columns_by_completeness > 0:
-    #                 idx = np.argsort(completeness)[-max_columns_by_completeness:]
-    #                 df = df.iloc[:, np.sort(idx)]
-    #         elif completeness_mode == "least":
-    #             df = df.loc[:, completeness <= completeness_threshold]
-    #             if max_columns_by_completeness > 0:
-    #                 idx = np.argsort(completeness)[:max_columns_by_completeness]
-    #                 df = df.iloc[:, np.sort(idx)]
-
-    #     # Max columns limit
-    #     if df.shape[1] > max_columns:
-    #         df = df.iloc[:, :max_columns]
-
-    #     # Ordering
-    #     if order_by:
-    #         for spec in reversed(order_by):
-    #             col = spec["column"]
-    #             ascending = spec.get("numeric_order", "asc") == "asc"
-    #             if "ascending" in spec:
-    #                 ascending = bool(spec["ascending"])
-
-    #             if col == "__missing__":
-    #                 missing_fraction = df.isna().mean()
-    #                 ordered_cols = missing_fraction.sort_values(
-    #                     ascending=ascending, kind="stable"
-    #                 ).index
-    #                 df = df.loc[:, ordered_cols]
-    #                 continue
-
-    #             if col == "__column__":
-    #                 ordered_cols = sorted(df.columns, reverse=not ascending)
-    #                 df = df.loc[:, ordered_cols]
-    #                 continue
-
-    #             if spec["type"] == "numeric":
-    #                 df = df.sort_values(col, ascending=ascending, kind="stable")
-    #             elif spec["type"] == "categorical":
-    #                 cat = pd.Categorical(
-    #                     df[col], categories=spec["category_order"], ordered=True
-    #                 )
-    #                 df = df.assign(**{col: cat}).sort_values(col, kind="stable")
-
-    #     return df
-
     # MARK: - Plot functions
 
-    # def _plot(self, cls, *args, **kwargs):
-    #     """Instantiate a plot object"""
-    #     return cls(self, *args, **kwargs)
+    def missing_count_barchart(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
+        completeness_mode: Optional[Literal["most", "least"]] = None,
+        completeness_threshold: float = 0.0,
+        max_columns_by_completeness: int = 0,
+        max_columns: int = 50,
+        order_by: Optional[List[Dict]] = None,
+        orientation: Literal["vertical", "horizontal"] = "vertical",
+        show_values: bool = True,
+        value: Literal["missing", "present"] = "missing",
+        show_both: bool = False,
+        **kwargs,
+    ) -> "MissingCountBarChart":
+        """Create a bar chart of missing counts per column."""
+        from ..plots.MissingCountBarChart import MissingCountBarChart
 
-    # TODO: Implement barchart method
-    # def barchart(self):
-    #    return 
+        return MissingCountBarChart(
+            data=self,
+            selected_columns=selected_columns,
+            ignore_high_missingness=ignore_high_missingness,
+            high_missingness_threshold=high_missingness_threshold,
+            completeness_mode=completeness_mode,
+            completeness_threshold=completeness_threshold,
+            max_columns_by_completeness=max_columns_by_completeness,
+            max_columns=max_columns,
+            order_by=order_by,
+            orientation=orientation,
+            show_values=show_values,
+            value=value,
+            show_both=show_both,
+            **kwargs,
+        )
 
     # TODO: Implement heatmap method
     # def heatmap(self, **kwargs):

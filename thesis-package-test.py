@@ -11,4 +11,4 @@ df = pd.DataFrame({
 
 md = MissingData(df)
 
-md.barchart().show()
+md.missing_count_barchart().show()

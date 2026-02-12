@@ -17,7 +17,7 @@ def main():
 
     print("=== Missingness Correlation Heatmap Demo ===")
     print(f"Rows: {len(df)} | Columns: {len(df.columns)}")
-    print(f"Overall missingness: {md.total_missingness:.2%}")
+    print(f"Overall missingness: {md.total_missing_rate:.2%}")
 
     # ------------------------------------------------------------------
     # Missingness correlation heatmap

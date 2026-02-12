@@ -13,85 +13,68 @@ def main():
 
     md = MissingData(df)
 
-    print("\n=== MissingFCUP Bar Chart Showcase ===")
+    print("\n=== Missing Count by Column (Bar Chart) ===")
     print(f"Rows: {len(df)} | Columns: {len(df.columns)}")
-    print(f"Overall missingness: {md.total_missingness:.2%}")
+    print(f"Overall missingness: {md.total_missing_rate:.2%}")
 
     # ------------------------------------------------------------------
-    # 1️⃣ Global missingness ranking (percentage)
+    # 1️⃣ Basic default (missing counts)
     # ------------------------------------------------------------------
-    bc_global_pct = md.barchart(
-        mode="percentage",
-        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
-        title="Global Missingness Ranking (%)",
-        max_columns=20,
-    )
-    bc_global_pct.show()
+    md.missing_count_barchart().show()
 
     # ------------------------------------------------------------------
-    # 2️⃣ Global missingness ranking (absolute counts)
+    # 2️⃣ Missing counts with a title
     # ------------------------------------------------------------------
-    bc_global_count = md.barchart(
-        mode="count",
-        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
-        title="Global Missingness Ranking (Count)",
-        max_columns=20,
-    )
-    bc_global_count.show()
+    bc_titled = md.missing_count_barchart(title="Missing Count by Column")
+    bc_titled.show()
 
     # ------------------------------------------------------------------
-    # 3️⃣ Almost-complete columns (≤ 5% missing)
+    # 3️⃣ Missing counts for a small subset
     # ------------------------------------------------------------------
-    bc_almost_complete = md.barchart(
-        mode="percentage",
-        completeness_threshold=0.95,
-        order_by=[{"column": "__missing__", "type": "numeric", "ascending": True}],
-        title="Almost Complete Columns (≤ 5% Missing)",
-    )
-    bc_almost_complete.show()
-
-    # ------------------------------------------------------------------
-    # 4️⃣ Heavily missing columns only (≥ 50%)
-    # ------------------------------------------------------------------
-    bc_heavily_missing = md.barchart(
-        mode="percentage",
-        threshold=50,
-        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
-        title="Heavily Missing Columns (≥ 50%)",
-    )
-    bc_heavily_missing.show()
-
-    # ------------------------------------------------------------------
-    # 5️⃣ Present vs Missing (stacked composition)
-    # ------------------------------------------------------------------
-    bc_stacked = md.barchart(
+    bc_subset = md.missing_count_barchart(
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
             "NUMBER OF PERSONS KILLED",
             "CONTRIBUTING FACTOR VEHICLE 1",
-            "CONTRIBUTING FACTOR VEHICLE 2",
         ],
-        stacked=True,
-        mode="percentage",
-        title="Present vs Missing Composition (%)",
+        title="Missing Count (Selected Columns)",
     )
-    bc_stacked.show()
+    bc_subset.show()
 
     # ------------------------------------------------------------------
-    # 6️⃣ Horizontal layout (readability for long names)
+    # 4️⃣ Missing counts (top 15 columns)
     # ------------------------------------------------------------------
-    bc_horizontal = md.barchart(
-        mode="percentage",
-        orientation="horizontal",
+    bc_top15 = md.missing_count_barchart(
+        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
         max_columns=15,
-        title="Missingness (%) – Horizontal Layout",
+        title="Missing Count (Top 15 Columns)",
     )
-    bc_horizontal.show()
+    bc_top15.show()
 
     # ------------------------------------------------------------------
-    # 7️⃣ Domain-focused subset (accident severity)
+    # 5️⃣ Missing counts (most missing first)
     # ------------------------------------------------------------------
-    bc_domain = md.barchart(
+    bc_most_missing = md.missing_count_barchart(
+        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
+        title="Missing Count (Most Missing First)",
+        max_columns=20,
+    )
+    bc_most_missing.show()
+
+    # ------------------------------------------------------------------
+    # 6️⃣ Missing counts (least missing first)
+    # ------------------------------------------------------------------
+    bc_least_missing = md.missing_count_barchart(
+        order_by=[{"column": "__missing__", "type": "numeric", "ascending": True}],
+        title="Missing Count (Least Missing First)",
+        max_columns=20,
+    )
+    bc_least_missing.show()
+
+    # ------------------------------------------------------------------
+    # 7️⃣ Missing counts for injury-related columns
+    # ------------------------------------------------------------------
+    bc_injury = md.missing_count_barchart(
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
             "NUMBER OF PERSONS KILLED",
@@ -99,32 +82,46 @@ def main():
             "NUMBER OF CYCLIST INJURED",
             "NUMBER OF MOTORIST INJURED",
         ],
-        mode="percentage",
-        title="Missingness in Injury-Related Variables",
+        title="Missing Count (Injury-Related Columns)",
     )
-    bc_domain.show()
+    bc_injury.show()
 
     # ------------------------------------------------------------------
-    # 8️⃣ Top-K most informative columns only
+    # 8️⃣ Missing counts after excluding high-missingness columns
     # ------------------------------------------------------------------
-    bc_topk = md.barchart(
-        mode="percentage",
-        order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
-        max_columns=10,
-        title="Top 10 Most Missing Columns",
+    bc_filtered = md.missing_count_barchart(
+        ignore_high_missingness=True,
+        high_missingness_threshold=0.6,
+        title="Missing Count (Exclude ≥ 60% Missing)",
     )
-    bc_topk.show()
+    bc_filtered.show()
 
     # ------------------------------------------------------------------
-    # 9️⃣ Alphabetical ordering (baseline sanity check)
+    # 9️⃣ Present counts with completeness-based filtering
     # ------------------------------------------------------------------
-    bc_alpha = md.barchart(
-        mode="percentage",
-        order_by=[{"column": "__column__", "type": "categorical", "ascending": True}],
-        title="Missingness by Column Name (Alphabetical)",
-        max_columns=20,
+    bc_complete = md.missing_count_barchart(
+        completeness_mode="most",
+        completeness_threshold=0.9,
+        max_columns_by_completeness=15,
+        value="present",
+        title="Present Count (Most Complete Columns)",
     )
-    bc_alpha.show()
+    bc_complete.show()
+
+    # ------------------------------------------------------------------
+    # 🔟 Missing vs Present (stacked counts)
+    # ------------------------------------------------------------------
+    bc_stacked = md.missing_count_barchart(
+        selected_columns=[
+            "NUMBER OF PERSONS INJURED",
+            "NUMBER OF PERSONS KILLED",
+            "CONTRIBUTING FACTOR VEHICLE 1",
+            "CONTRIBUTING FACTOR VEHICLE 2",
+        ],
+        show_both=True,
+        title="Missing vs Present (Counts)",
+    )
+    bc_stacked.show()
 
 if __name__ == "__main__":
     main()
