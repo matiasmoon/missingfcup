@@ -106,6 +106,29 @@ class ColumnMissingRateHeatmap(Plot):
 
         show_cell_text = self.show_values and len(values) <= self.max_labels_with_values
 
+        customdata = [
+            [
+                (
+                    name,
+                    f"{val:.{self.value_round}f}%" if self.scale == "percentage"
+                    else f"{val:.{self.value_round}f}"
+                )
+                for name, val in zip(values.index, values)
+            ]
+        ]
+
+        hovertext = [
+            [
+                f"<b>Column</b>: {name}<br><b>{label}</b>: "
+                + (
+                    f"{val:.{self.value_round}f}%"
+                    if self.scale == "percentage"
+                    else f"{val:.{self.value_round}f}"
+                )
+                for name, val in zip(values.index, values)
+            ]
+        ]
+
         fig = go.Figure(
             data=go.Heatmap(
                 z=[values.values],
@@ -120,23 +143,9 @@ class ColumnMissingRateHeatmap(Plot):
                 texttemplate="%{text}" if show_cell_text else None,
                 showscale=self.show_colorbar,
                 colorbar=dict(title=label) if self.show_colorbar else None,
-                hovertemplate=(
-                    "<b>Column</b>: %{customdata[0]}<br>"
-                    f"<b>{label}</b>: %{customdata[1]}<extra></extra>"
-                ),
-                customdata=[
-                    [
-                        [
-                            name,
-                            (
-                                f"{val:.{self.value_round}f}%"
-                                if self.scale == "percentage"
-                                else f"{val:.{self.value_round}f}"
-                            ),
-                        ]
-                        for name, val in zip(values.index, values)
-                    ]
-                ],
+                hovertext=hovertext,
+                hovertemplate="%{hovertext}<extra></extra>",
+                customdata=customdata,
             )
         )
 
