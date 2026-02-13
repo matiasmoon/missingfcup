@@ -570,6 +570,41 @@ class MissingData:
             missing_color=missing_color,
             **kwargs,
         )
+
+    def missingness_correlation_heatmap(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        colorscale: str = "RdBu",
+        show_values: bool = True,
+        max_columns: int = 30,
+        drop_constant_columns: bool = True,
+        order_by_missingness: bool = True,
+        order: Literal["desc", "asc"] = "desc",
+        value_round: int = 1,
+        show_colorbar: bool = True,
+        show_upper_triangle: bool = True,
+        nan_color: str = "#c7c7c7",
+        **kwargs,
+    ) -> "CorrelationHeatmap":
+        """Create a heatmap of missingness correlations between columns."""
+        from ..plots.CorrelationHeatmap import CorrelationHeatmap
+
+        return CorrelationHeatmap(
+            data=self,
+            selected_columns=selected_columns,
+            colorscale=colorscale,
+            show_values=show_values,
+            max_columns=max_columns,
+            drop_constant_columns=drop_constant_columns,
+            order_by_missingness=order_by_missingness,
+            order=order,
+            value_round=value_round,
+            show_colorbar=show_colorbar,
+            show_upper_triangle=show_upper_triangle,
+            nan_color=nan_color,
+            **kwargs,
+        )
     
     # TODO: Implement missingness_correlation_heatmap method
     # def missingness_correlation_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs, ):

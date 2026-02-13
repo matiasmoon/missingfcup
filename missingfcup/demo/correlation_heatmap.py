@@ -1,33 +1,119 @@
 import pandas as pd
+
 from missingfcup.core.MissingData import MissingData
 
 
 def main():
-    # ------------------------------------------------------------------
-    # Load dataset
-    # ------------------------------------------------------------------
     df = pd.read_csv(
         "https://raw.githubusercontent.com/ResidentMario/missingno-data/master/nyc_collision_factors.csv"
     )
-
-    # ------------------------------------------------------------------
-    # Create MissingData object
-    # ------------------------------------------------------------------
     md = MissingData(df)
 
-    print("=== Missingness Correlation Heatmap Demo ===")
-    print(f"Rows: {len(df)} | Columns: {len(df.columns)}")
-    print(f"Overall missingness: {md.total_missing_rate:.2%}")
+    print("\n=== Missingness Correlation Heatmap Demo (10 Examples) ===")
 
     # ------------------------------------------------------------------
-    # Missingness correlation heatmap
+    # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    heatmap = md.missingness_correlation_heatmap(
-        title="Missingness Correlation Heatmap",
-        show_values=True,
-    )
+    md.missingness_correlation_heatmap().show()
 
-    heatmap.show()
+    # ------------------------------------------------------------------
+    # 2️⃣-5️⃣ Simple with personalization
+    # ------------------------------------------------------------------
+    md.missingness_correlation_heatmap(
+        selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME", "ON STREET NAME"],
+        title="Location Fields (Missingness Correlation)",
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        selected_columns=[
+            "CONTRIBUTING FACTOR VEHICLE 1",
+            "CONTRIBUTING FACTOR VEHICLE 2",
+            "CONTRIBUTING FACTOR VEHICLE 3",
+            "CONTRIBUTING FACTOR VEHICLE 4",
+        ],
+        title="Contributing Factors (1-4)",
+        colorscale="RdBu",
+        show_values=False,
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        selected_columns=[
+            "VEHICLE TYPE CODE 1",
+            "VEHICLE TYPE CODE 2",
+            "VEHICLE TYPE CODE 3",
+            "VEHICLE TYPE CODE 4",
+        ],
+        title="Vehicle Types (1-4)",
+        show_upper_triangle=False,
+        value_round=1,
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        selected_columns=[
+            "ON STREET NAME",
+            "CROSS STREET NAME",
+            "OFF STREET NAME",
+            "ZIP CODE",
+        ],
+        title="Street Names + ZIP",
+        colorscale="Viridis",
+        show_colorbar=True,
+    ).show()
+
+    # ------------------------------------------------------------------
+    # 6️⃣-🔟 More complex
+    # ------------------------------------------------------------------
+    md.missingness_correlation_heatmap(
+        max_columns=12,
+        title="Top 12 Columns by Missingness",
+        show_values=False,
+        order="desc",
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        max_columns=12,
+        title="Top 12 (Lower Triangle Only)",
+        show_upper_triangle=False,
+        show_values=False,
+        colorscale="RdBu",
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        selected_columns=[
+            "CONTRIBUTING FACTOR VEHICLE 1",
+            "CONTRIBUTING FACTOR VEHICLE 2",
+            "CONTRIBUTING FACTOR VEHICLE 3",
+            "CONTRIBUTING FACTOR VEHICLE 4",
+            "CONTRIBUTING FACTOR VEHICLE 5",
+            "VEHICLE TYPE CODE 1",
+            "VEHICLE TYPE CODE 2",
+        ],
+        title="Contributing Factors + Vehicle Types",
+        max_columns=7,
+        colorscale="RdBu",
+        value_round=2,
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        selected_columns=[
+            "ZIP CODE",
+            "BOROUGH",
+            "ON STREET NAME",
+            "CROSS STREET NAME",
+            "OFF STREET NAME",
+        ],
+        title="Location Fields (Dark Theme)",
+        background_color="#0b0b0b",
+        text_color="#f2f2f2",
+        colorscale="RdBu",
+    ).show()
+
+    md.missingness_correlation_heatmap(
+        max_columns=16,
+        title="Broad Overview (16 Columns)",
+        show_values=False,
+        show_colorbar=False,
+    ).show()
 
 
 if __name__ == "__main__":
