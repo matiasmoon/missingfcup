@@ -122,7 +122,7 @@ class ColumnMissingRateHeatmap(Plot):
                 colorbar=dict(title=label) if self.show_colorbar else None,
                 hovertemplate=(
                     "<b>Column</b>: %{customdata[0]}<br>"
-                    f"<b>{label}</b>: %{{customdata[1]}}<extra></extra>"
+                    f"<b>{label}</b>: %{customdata[1]}<extra></extra>"
                 ),
                 customdata=[
                     [

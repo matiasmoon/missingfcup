@@ -520,9 +520,42 @@ class MissingData:
             **kwargs,
         )
 
-    # TODO: Implement heatmap method
-    # def heatmap(self, **kwargs):
-    #    return
+    def heatmap(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.95,
+        max_columns: int = 50,
+        order_by: Optional[List[Dict]] = None,
+        show_colorscale: bool = False,
+        group_by_mode: Literal["binary", "missing"] = "binary",
+        xgap: int = 0,
+        ygap: int = 0,
+        max_label_length: int = 48,
+        order_by_border_color: str = "#1f77b4",
+        order_by_border_width: int = 5,
+        **kwargs,
+    ) -> "Heatmap":
+        """Create an interactive missingness heatmap."""
+        from ..plots.Heatmap import Heatmap
+
+        return Heatmap(
+            data=self,
+            selected_columns=selected_columns,
+            ignore_high_missingness=ignore_high_missingness,
+            high_missingness_threshold=high_missingness_threshold,
+            max_columns=max_columns,
+            order_by=order_by,
+            show_colorscale=show_colorscale,
+            group_by_mode=group_by_mode,
+            xgap=xgap,
+            ygap=ygap,
+            max_label_length=max_label_length,
+            order_by_border_color=order_by_border_color,
+            order_by_border_width=order_by_border_width,
+            **kwargs,
+        )
 
     def scatterplot(
         self,

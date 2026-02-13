@@ -13,8 +13,8 @@ class Plot(ABC):
         self,
         data: MissingData,
         title: Optional[str] = None,
-        width: int = 900,
-        height: int = 500,
+        width: int = 1500,
+        height: int = 750,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
         missing_color: str = "#d62728",
@@ -26,8 +26,8 @@ class Plot(ABC):
         self.title = title
 
         # Layout / theme
-        self.width = width
-        self.height = height
+        self.width = min(width, 2000)
+        self.height = min(height, 1000)
         self.background_color = background_color
         self.text_color = text_color
 
