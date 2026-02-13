@@ -524,9 +524,26 @@ class MissingData:
     # def heatmap(self, **kwargs):
     #    return
 
-    # TODO: Implement scatterplot method
-    # def scatterplot(self, x: str, y: str, *, point_size: int = 8, axis_padding: float = 0.05, title: Optional[str] = None, **kwargs):
-    #    return
+    def scatterplot(
+        self,
+        x: str,
+        y: str,
+        *,
+        point_size: int = 8,
+        axis_padding: float = 0.05,
+        **kwargs,
+    ) -> "ScatterPlot":
+        """Create a scatter plot highlighting missingness in two columns."""
+        from ..plots.Scatterplot import ScatterPlot
+
+        return ScatterPlot(
+            data=self,
+            x=x,
+            y=y,
+            point_size=point_size,
+            axis_padding=axis_padding,
+            **kwargs,
+        )
 
     # TODO: Implement pattern_barchart method
     # def pattern_barchart(self, *, title: Optional[str] = None, max_patterns: Optional[int] = None):
