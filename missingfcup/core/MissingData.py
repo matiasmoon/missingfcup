@@ -611,5 +611,37 @@ class MissingData:
     #    return
     
     # TODO: Implement column_missing_rate_heatmap method
-    # def column_missing_rate_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs,):
-    #    return
+    def column_missing_rate_heatmap(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        scale: Literal["fraction", "percentage"] = "fraction",
+        colorscale: str = "Reds",
+        show_values: bool = True,
+        max_columns: int = 30,
+        order_by_missingness: bool = True,
+        order: Literal["desc", "asc"] = "desc",
+        value_round: int = 2,
+        show_colorbar: bool = True,
+        max_label_length: int = 48,
+        max_labels_with_values: int = 20,
+        **kwargs,
+    ) -> "ColumnMissingRateHeatmap":
+        """Create a heatmap of missing rates per column."""
+        from ..plots.ColumnMissingRateHeatmap import ColumnMissingRateHeatmap
+
+        return ColumnMissingRateHeatmap(
+            data=self,
+            selected_columns=selected_columns,
+            scale=scale,
+            colorscale=colorscale,
+            show_values=show_values,
+            max_columns=max_columns,
+            order_by_missingness=order_by_missingness,
+            order=order,
+            value_round=value_round,
+            show_colorbar=show_colorbar,
+            max_label_length=max_label_length,
+            max_labels_with_values=max_labels_with_values,
+            **kwargs,
+        )
