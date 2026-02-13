@@ -546,8 +546,30 @@ class MissingData:
         )
 
     # TODO: Implement pattern_barchart method
-    # def pattern_barchart(self, *, title: Optional[str] = None, max_patterns: Optional[int] = None):
-    #    return
+    def pattern_barchart(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        sort_order: Literal["desc", "asc"] = "desc",
+        value: Literal["count", "percent"] = "count",
+        show_values: bool = True,
+        max_label_length: int = 48,
+        missing_color: str = "#d62728",
+        **kwargs,
+    ) -> "PatternBarChart":
+        """Create a bar chart of row-level missingness patterns."""
+        from ..plots.PatternBarChart import PatternBarChart
+
+        return PatternBarChart(
+            data=self,
+            selected_columns=selected_columns,
+            sort_order=sort_order,
+            value=value,
+            show_values=show_values,
+            max_label_length=max_label_length,
+            missing_color=missing_color,
+            **kwargs,
+        )
     
     # TODO: Implement missingness_correlation_heatmap method
     # def missingness_correlation_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs, ):
