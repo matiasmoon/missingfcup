@@ -24,6 +24,8 @@ class Panel:
         Global text color
     max_cols : int
         Maximum number of columns (default: 2)
+    max_plots : int
+        Maximum number of plots allowed in a panel (default: 4)
     """
 
     def __init__(
@@ -33,15 +35,19 @@ class Panel:
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
         max_cols: int = 2,
+        max_plots: int = 4,
     ):
         if not plots:
             raise ValueError("Panel requires at least one plot")
+        if len(plots) > max_plots:
+            raise ValueError(f"Panel supports at most {max_plots} plots")
 
         self.plots = plots
         self.title = title or "Combined Plots"
         self.background_color = background_color
         self.text_color = text_color
         self.max_cols = max_cols
+        self.max_plots = max_plots
 
     # ------------------------------------------------------------------
     # Figure construction
@@ -50,7 +56,12 @@ class Panel:
         n_plots = len(self.plots)
 
         # Grid layout
-        cols = min(self.max_cols, n_plots)
+        if n_plots <= 2:
+            cols = n_plots
+        elif n_plots == 3:
+            cols = 3
+        else:
+            cols = min(self.max_cols, n_plots)
         rows = (n_plots + cols - 1) // cols
 
         fig = make_subplots(
@@ -99,7 +110,12 @@ class Panel:
                 )
 
         # Figure sizing heuristic
-        total_width = 1400 if cols == 2 else 800
+        if cols == 3:
+            total_width = 1500
+        elif cols == 2:
+            total_width = 1400
+        else:
+            total_width = 800
         total_height = 450 * rows + 150
 
         fig.update_layout(
