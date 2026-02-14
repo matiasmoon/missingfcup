@@ -3,8 +3,8 @@ import pandas as pd
 import numpy as np
 from typing import Optional, List, Literal
 
-from .Plot import Plot
-from ..core.MissingData import MissingData
+from missingfcup.plots.Plot import Plot
+from missingfcup.core.MissingData import MissingData
 
 class CorrelationHeatmap(Plot):
     """

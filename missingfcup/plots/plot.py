@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 import plotly.graph_objects as go
-from ..core.MissingData import MissingData
+from missingfcup.core.MissingData import MissingData
 
 
 class Plot(ABC):

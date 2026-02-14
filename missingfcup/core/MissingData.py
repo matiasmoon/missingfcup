@@ -5,7 +5,7 @@ from typing import Optional, List, Dict, Literal, TYPE_CHECKING
 
 from pandas.api.types import is_numeric_dtype
 if TYPE_CHECKING:
-    from ..plots.Barchart import MissingCountBarChart
+    from missingfcup.plots.MissingCountBarChart import MissingCountBarChart
 
 class MissingData:
     """

@@ -2,7 +2,7 @@ from typing import List, Optional
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from .Plot import Plot
+from missingfcup.plots.Plot import Plot
 
 class Panel:
     """

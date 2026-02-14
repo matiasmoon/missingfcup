@@ -1,3 +1,3 @@
-from .MissingData import MissingData
+from missingfcup.core.MissingData import MissingData
 
 __all__ = ["MissingData"]

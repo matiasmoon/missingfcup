@@ -4,8 +4,8 @@ import numpy as np
 from typing import Optional, Literal, List, Dict
 import warnings
 
-from .Plot import Plot
-from ..core.MissingData import MissingData
+from missingfcup.plots.Plot import Plot
+from missingfcup.core.MissingData import MissingData
 
 class Heatmap(Plot):
     """
