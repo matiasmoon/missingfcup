@@ -457,6 +457,33 @@ class MissingData:
             **kwargs,
         )
 
+    def parallel_coordinates(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        missingness_color_column: Optional[str] = None,
+        normalize: bool = True,
+        missingness_only: bool = False,
+        impute_below_range_frac: float = 0.1,
+        show_colorbar: bool = False,
+        line_opacity: float = 0.5,
+        **kwargs,
+    ) -> "ParallelCoordinates":
+        """Create a parallel coordinates plot with missing values imputed below range."""
+        from ..plots.ParallelCoordinates import ParallelCoordinates
+
+        return ParallelCoordinates(
+            data=self,
+            selected_columns=selected_columns,
+            missingness_color_column=missingness_color_column,
+            normalize=normalize,
+            missingness_only=missingness_only,
+            impute_below_range_frac=impute_below_range_frac,
+            show_colorbar=show_colorbar,
+            line_opacity=line_opacity,
+            **kwargs,
+        )
+
     def missingness_correlation_heatmap(
         self,
         *,
