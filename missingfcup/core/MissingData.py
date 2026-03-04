@@ -426,6 +426,37 @@ class MissingData:
             **kwargs,
         )
 
+    def upset_plot(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        max_sets: int = 8,
+        max_intersections: int = 20,
+        min_intersection_size: int = 1,
+        sort_order: Literal["desc", "asc"] = "desc",
+        show_values: bool = True,
+        matrix_dot_size: int = 12,
+        matrix_line_width: int = 3,
+        excluded_dot_color: str = "#e0e0e0",
+        **kwargs,
+    ) -> "UpSetPlot":
+        """Create an UpSet-style plot of missingness intersections."""
+        from ..plots.UpSetPlot import UpSetPlot
+
+        return UpSetPlot(
+            data=self,
+            selected_columns=selected_columns,
+            max_sets=max_sets,
+            max_intersections=max_intersections,
+            min_intersection_size=min_intersection_size,
+            sort_order=sort_order,
+            show_values=show_values,
+            matrix_dot_size=matrix_dot_size,
+            matrix_line_width=matrix_line_width,
+            excluded_dot_color=excluded_dot_color,
+            **kwargs,
+        )
+
     def missingness_correlation_heatmap(
         self,
         *,

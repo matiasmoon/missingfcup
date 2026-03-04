@@ -71,6 +71,12 @@ md.scatterplot(x="age", y="income").show()
 md.pattern_barchart().show()
 ```
 
+### UpSet Plot (Missingness Intersections)
+
+```python
+md.upset_plot().show()
+```
+
 ### Missingness Correlation Heatmap
 
 ```python
