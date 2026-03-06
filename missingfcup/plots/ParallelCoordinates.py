@@ -11,8 +11,10 @@ class ParallelCoordinates(Plot):
     """
     Parallel coordinates plot with missing values imputed below range.
 
-    Missing values are imputed to a value 10% below the observed range
-    (configurable via `impute_below_range_frac`).
+    If normalize=False, missing values are imputed to a value below the
+    observed range (configurable via `impute_below_range_frac`).
+    If normalize=True, missing values are placed at the bottom of the
+    normalized range (0.0).
 
     Lines can be colored by missingness of a specific column.
     """
@@ -184,7 +186,13 @@ class ParallelCoordinates(Plot):
                     ],
                     cmin=0,
                     cmax=1,
-                    showscale=False,
+                    showscale=self.show_colorbar,
+                    colorbar=dict(
+                        title=f"{self.missingness_color_column} missingness",
+                        tickmode="array",
+                        tickvals=[0, 1],
+                        ticktext=["Present", "Missing"],
+                    ) if self.show_colorbar else None,
                 )
             )
         else:

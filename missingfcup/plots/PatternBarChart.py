@@ -173,17 +173,4 @@ class PatternBarChart(Plot):
         self._apply_base_layout(fig)
         return fig
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-    @property
-    def fig(self) -> go.Figure:
-        if self._figure is None:
-            self._figure = self._build_figure()
-        return self._figure
-
-    def show(self):
-        self.fig.show()
-
-    def save(self, path: str):
-        self.fig.write_html(path)
+    # Public API inherited from Plot

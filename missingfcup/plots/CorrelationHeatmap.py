@@ -48,8 +48,7 @@ class CorrelationHeatmap(Plot):
     # Figure construction
     # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
-        df = self.data.data
-        missing_matrix = df.isna()
+        missing_matrix = self.data.missing_mask
 
         if self.selected_columns is not None:
             cols = [c for c in self.selected_columns if c in missing_matrix.columns]
@@ -165,17 +164,4 @@ class CorrelationHeatmap(Plot):
 
         return fig
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-    @property
-    def fig(self) -> go.Figure:
-        if self._figure is None:
-            self._figure = self._build_figure()
-        return self._figure
-
-    def show(self):
-        self.fig.show()
-
-    def save(self, path: str):
-        self.fig.write_html(path)
+    # Public API inherited from Plot

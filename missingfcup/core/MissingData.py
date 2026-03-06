@@ -176,7 +176,7 @@ class MissingData:
 
         Two rows share the same missing pattern if they are missing values in the exact same set of columns.
 
-        Identifies the columns where there is missing values for every row.
+        Each tuple lists the columns missing in that specific row.
         Rows with no missing values will have an empty tuple.
         """
         return self.missing_mask.apply(
@@ -400,7 +400,6 @@ class MissingData:
             **kwargs,
         )
 
-    # TODO: Implement pattern_barchart method
     def pattern_barchart(
         self,
         *,
@@ -469,7 +468,12 @@ class MissingData:
         line_opacity: float = 0.5,
         **kwargs,
     ) -> "ParallelCoordinates":
-        """Create a parallel coordinates plot with missing values imputed below range."""
+        """Create a parallel coordinates plot with missing values imputed.
+
+        If normalize=False, missing values are imputed below the observed range.
+        If normalize=True, missing values are placed at the bottom of the
+        normalized range (0.0).
+        """
         from ..plots.ParallelCoordinates import ParallelCoordinates
 
         return ParallelCoordinates(
@@ -519,11 +523,6 @@ class MissingData:
             **kwargs,
         )
     
-    # TODO: Implement missingness_correlation_heatmap method
-    # def missingness_correlation_heatmap(self, selected_columns: Optional[List[str]] = None, title: Optional[str] = None, **kwargs, ):
-    #    return
-    
-    # TODO: Implement column_missing_rate_heatmap method
     def column_missing_rate_heatmap(
         self,
         *,

@@ -184,7 +184,8 @@ class Heatmap(Plot):
     def _build_figure(self) -> go.Figure:
         df = self._prepare_df()
 
-        mask = df.isna()
+        # Reuse cached missingness mask and align to the filtered frame
+        mask = self.data.missing_mask.loc[df.index, df.columns]
 
         if self.group_by_mode == "binary":
             z = (~mask).astype(int).to_numpy()
@@ -320,17 +321,4 @@ class Heatmap(Plot):
 
         return fig
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-    @property
-    def fig(self) -> go.Figure:
-        if self._figure is None:
-            self._figure = self._build_figure()
-        return self._figure
-
-    def show(self):
-        self.fig.show()
-
-    def save(self, path: str):
-        self.fig.write_html(path)
+    # Public API inherited from Plot

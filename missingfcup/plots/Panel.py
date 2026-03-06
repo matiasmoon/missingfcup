@@ -1,4 +1,5 @@
 from typing import List, Optional
+import copy
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
@@ -8,7 +9,7 @@ class Panel:
     """
     Create a multi-panel display combining multiple plots in a grid layout.
 
-    The Panel class automatically arranges plots in a grid (maximum 2 columns)
+    The Panel class automatically arranges plots in a grid (maximum `max_cols` columns)
     and handles sizing to prevent overlap. Colorbars and legends are hidden
     in the panel view to avoid clutter.
 
@@ -56,12 +57,7 @@ class Panel:
         n_plots = len(self.plots)
 
         # Grid layout
-        if n_plots <= 2:
-            cols = n_plots
-        elif n_plots == 3:
-            cols = 3
-        else:
-            cols = min(self.max_cols, n_plots)
+        cols = min(self.max_cols, n_plots)
         rows = (n_plots + cols - 1) // cols
 
         fig = make_subplots(
@@ -82,8 +78,8 @@ class Panel:
             plot_fig = plot.fig
 
             for trace in plot_fig.data:
-                # Shallow copy is fine; Plotly handles trace reuse safely
-                trace_copy = trace
+                # Deep copy to avoid mutating the original plot's traces
+                trace_copy = copy.deepcopy(trace)
 
                 # Hide legends inside panels
                 trace_copy.showlegend = False
