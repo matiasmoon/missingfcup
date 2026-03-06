@@ -1,1 +1,3 @@
-__all__ = []
+from missingfcup.plots.Panel import Panel
+
+__all__ = ["Panel"]
