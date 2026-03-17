@@ -1,6 +1,7 @@
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
+from typing import Optional
 
 from missingfcup.plots.Plot import Plot
 from missingfcup.core.MissingData import MissingData
@@ -20,17 +21,24 @@ class ScatterPlot(Plot):
         y: str,
         point_size: int = 8,
         axis_padding: float = 0.05,
+        missingness_color_column: Optional[str] = None,
         point_opacity: float = 0.7,
         jitter: float = 0.0,
         jitter_seed: int = 42,
         **kwargs,
     ):
-        legend_title = kwargs.pop("legend_title", "Status")
+        default_legend_title = (
+            f"{missingness_color_column} missingness"
+            if missingness_color_column is not None
+            else "Status"
+        )
+        legend_title = kwargs.pop("legend_title", default_legend_title)
         super().__init__(data=data, legend_title=legend_title, **kwargs)
         self.x = x
         self.y = y
         self.point_size = point_size
         self.axis_padding = axis_padding
+        self.missingness_color_column = missingness_color_column
         self.point_opacity = point_opacity
         self.jitter = jitter
         self.jitter_seed = jitter_seed
@@ -42,6 +50,14 @@ class ScatterPlot(Plot):
         df = self.data.data
         if self.x not in df.columns or self.y not in df.columns:
             raise ValueError(f"Columns '{self.x}' and '{self.y}' must exist")
+        if (
+            self.missingness_color_column is not None
+            and self.missingness_color_column not in df.columns
+        ):
+            raise ValueError(
+                "missingness_color_column "
+                f"'{self.missingness_color_column}' not found"
+            )
         return df
 
     def _validate_numeric(self, df: pd.DataFrame) -> None:
@@ -76,6 +92,36 @@ class ScatterPlot(Plot):
                 y_display[mask].astype(object).to_numpy(),
             ]
         )
+
+    def _point_symbols(
+        self,
+        x_missing: pd.Series,
+        y_missing: pd.Series,
+        mask: pd.Series,
+    ) -> np.ndarray:
+        symbols = np.full(mask.sum(), "circle", dtype=object)
+        selected_x_missing = x_missing[mask].to_numpy()
+        selected_y_missing = y_missing[mask].to_numpy()
+
+        symbols[selected_x_missing & ~selected_y_missing] = "x"
+        symbols[~selected_x_missing & selected_y_missing] = "triangle-down"
+        symbols[selected_x_missing & selected_y_missing] = "diamond-open"
+        return symbols
+
+    def _xy_status_labels(
+        self,
+        x_missing: pd.Series,
+        y_missing: pd.Series,
+        mask: pd.Series,
+    ) -> np.ndarray:
+        labels = np.full(mask.sum(), "Present", dtype=object)
+        selected_x_missing = x_missing[mask].to_numpy()
+        selected_y_missing = y_missing[mask].to_numpy()
+
+        labels[selected_x_missing & ~selected_y_missing] = f"Missing {self.x}"
+        labels[~selected_x_missing & selected_y_missing] = f"Missing {self.y}"
+        labels[selected_x_missing & selected_y_missing] = "Missing both axes"
+        return labels
 
     def _build_figure(self) -> go.Figure:
         df = self._prepare_df()
@@ -119,6 +165,69 @@ class ScatterPlot(Plot):
         y_display[y_missing] = "Missing"
 
         fig = go.Figure()
+
+        if self.missingness_color_column is not None:
+            target_missing = missing_mask[self.missingness_color_column]
+
+            for is_missing, trace_name, trace_color in [
+                (False, "Present", self.present_color),
+                (True, "Missing", self.missing_color),
+            ]:
+                mask = target_missing == is_missing
+                if not mask.any():
+                    continue
+
+                xy_status = self._xy_status_labels(x_missing, y_missing, mask)
+                target_status = np.full(mask.sum(), trace_name, dtype=object)
+
+                fig.add_scatter(
+                    x=plot_x[mask],
+                    y=plot_y[mask],
+                    mode="markers",
+                    name=trace_name,
+                    marker=dict(
+                        color=trace_color,
+                        size=self.point_size,
+                        symbol=self._point_symbols(x_missing, y_missing, mask),
+                        opacity=self.point_opacity,
+                    ),
+                    customdata=np.column_stack(
+                        [
+                            x_display[mask].astype(object).to_numpy(),
+                            y_display[mask].astype(object).to_numpy(),
+                            target_status,
+                            xy_status,
+                        ]
+                    ),
+                    hovertemplate=(
+                        f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
+                        f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
+                        f"<b>{self.missingness_color_column}</b>: %{{customdata[2]}}<br>"
+                        "<b>Axes</b>: %{customdata[3]}<extra></extra>"
+                    ),
+                )
+
+            fig.update_layout(
+                xaxis_title=self.x,
+                yaxis_title=self.y,
+                dragmode="pan",
+            )
+
+            def padded_range(series: pd.Series, offset_val: float) -> list[float]:
+                s = series.dropna()
+                if s.empty:
+                    return [offset_val - 1, offset_val + 1]
+
+                min_val = min(s.min(), offset_val)
+                max_val = s.max()
+                span = max_val - min_val or 1.0
+                pad = span * self.axis_padding
+                return [min_val - pad, max_val + pad]
+
+            fig.update_xaxes(range=padded_range(x, x_offset))
+            fig.update_yaxes(range=padded_range(y, y_offset))
+            self._apply_base_layout(fig)
+            return fig
 
         # ------------------------------------------------------------------
         # Present points

@@ -27,7 +27,7 @@ class Heatmap(Plot):
         order_by: Optional[List[Dict]] = None,
         show_colorscale: bool = False,
         group_by_mode: Literal["binary", "missing"] = "binary",
-        xgap: int = 0,
+        xgap: int = 1,
         ygap: int = 0,
         max_label_length: int = 48,
         order_by_border_color: str = "#1f77b4",

@@ -6,12 +6,11 @@ from typing import Optional, List, Literal
 from missingfcup.plots.Plot import Plot
 from missingfcup.core.MissingData import MissingData
 
-class CorrelationHeatmap(Plot):
-    """
-    Heatmap showing correlation between column-level missingness.
 
-    Each cell represents the correlation between two columns'
-    missingness patterns.
+class AllCorrelationHeatmap(Plot):
+    """
+    Heatmap showing correlation between present indicators and
+    missingness indicators of all columns.
     """
 
     def __init__(
@@ -21,7 +20,7 @@ class CorrelationHeatmap(Plot):
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 30,
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         order_by_missingness: bool = True,
         order: Literal["desc", "asc"] = "desc",
         value_round: int = 1,
@@ -44,51 +43,45 @@ class CorrelationHeatmap(Plot):
         self.show_upper_triangle = show_upper_triangle
         self.nan_color = nan_color
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
-        missing_matrix = self.data.missing_mask
+        corr = self.data.present_missing_correlation
 
         if self.selected_columns is not None:
-            cols = [c for c in self.selected_columns if c in missing_matrix.columns]
+            cols = [c for c in self.selected_columns if c in corr.columns]
             if not cols:
                 raise ValueError("No selected_columns found in DataFrame.")
-            missing_matrix = missing_matrix[cols]
+            corr = corr.loc[cols, cols]
 
-        # Drop constant-missingness columns
         if self.drop_constant_columns:
+            missing_matrix = self.data.missing_mask
             constant_cols = [
                 c for c in missing_matrix.columns
                 if missing_matrix[c].nunique() <= 1
             ]
             if constant_cols:
-                missing_matrix = missing_matrix.drop(columns=constant_cols)
+                corr = corr.drop(index=constant_cols, columns=constant_cols, errors="ignore")
 
-        # Order by missingness fraction
-        if self.order_by_missingness and not missing_matrix.empty:
+        if self.order_by_missingness and not corr.empty:
             ascending = self.order == "asc"
-            missing_fraction = missing_matrix.mean().sort_values(ascending=ascending)
-            missing_matrix = missing_matrix[missing_fraction.index]
-
-        # Column limit
-        if self.max_columns > 0 and missing_matrix.shape[1] > self.max_columns:
-            missing_matrix = missing_matrix.iloc[:, : self.max_columns]
-
-        if missing_matrix.shape[1] < 2:
-            raise ValueError(
-                "Not enough columns with varying missingness to compute correlation."
+            missing_fraction = (
+                self.data.missing_mask.mean().sort_values(ascending=ascending)
             )
+            ordered = [c for c in missing_fraction.index if c in corr.columns]
+            corr = corr.loc[ordered, ordered]
 
-        with np.errstate(invalid="ignore", divide="ignore"):
-            corr = missing_matrix.corr()
-        # Ensure columns/rows align (standard correlation matrix layout)
-        corr = corr.loc[corr.columns, corr.columns]
+        if self.max_columns > 0 and corr.shape[0] > self.max_columns:
+            corr = corr.iloc[: self.max_columns, : self.max_columns]
 
-        # Avoid unreadable text for large matrices
+        if corr.shape[0] < 1 or corr.shape[1] < 1:
+            raise ValueError("Not enough columns to compute correlation.")
+
         effective_show_values = self.show_values and corr.shape[0] <= 30
 
-        if not self.show_upper_triangle:
+        if (
+            not self.show_upper_triangle
+            and corr.shape[0] == corr.shape[1]
+            and list(corr.index) == list(corr.columns)
+        ):
             mask = pd.DataFrame(
                 np.triu(np.ones(corr.shape, dtype=bool), k=1),
                 index=corr.index,
@@ -108,7 +101,6 @@ class CorrelationHeatmap(Plot):
             text = None
 
         fig = go.Figure()
-        # NaN overlay (gray)
         if nan_mask.any():
             nan_layer = np.where(nan_mask, 1.0, np.nan)
             fig.add_trace(
@@ -135,34 +127,30 @@ class CorrelationHeatmap(Plot):
                 texttemplate="%{text}" if effective_show_values else None,
                 colorbar=dict(
                     title=(
-                        "Missingness correlation"
-                        "<br><span style='font-size:10px'>NaN = insufficient overlap</span>"
+                        "Present vs Missing correlation"
+                        "<br><span style='font-size:10px'>NaN = constant column</span>"
                     ),
                     tickmode="array",
                     tickvals=[-1, 0, 1],
                     ticktext=[
-                        "Mutually exclusive missingness",
-                        "Independent missingness",
-                        "Missing together",
+                        "Present together",
+                        "Independent",
+                        "Present vs Missing",
                     ],
                 ) if self.show_colorbar else None,
                 hovertemplate=(
-                    "<b>%{y}</b> vs <b>%{x}</b><br>"
+                    "<b>Present</b>: %{y}<br>"
+                    "<b>Missing</b>: %{x}<br>"
                     "Correlation: %{z:.1f}<extra></extra>"
                 ),
                 hoverongaps=False,
             )
         )
 
-        # Axis labels intentionally empty (matrix-style plot)
         fig.update_layout(
             xaxis_title="",
             yaxis_title="",
         )
 
-        # Apply shared layout/theme
         self._apply_base_layout(fig)
-
         return fig
-
-    # Public API inherited from Plot

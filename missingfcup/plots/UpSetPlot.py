@@ -29,6 +29,8 @@ class UpSetPlot(Plot):
         matrix_line_width: int = 4,
         excluded_dot_color: str = "#e0e0e0",
         max_label_length: int = 28,
+        highlight_columns: Optional[List[str]] = None,
+        highlight_color: Optional[str] = None,
         **kwargs,
     ):
         if "show_legend" not in kwargs:
@@ -45,6 +47,8 @@ class UpSetPlot(Plot):
         self.matrix_line_width = matrix_line_width
         self.excluded_dot_color = excluded_dot_color
         self.max_label_length = max_label_length
+        self.highlight_columns = highlight_columns
+        self.highlight_color = highlight_color
 
     # ------------------------------------------------------------------
     # Data prep
@@ -171,11 +175,19 @@ class UpSetPlot(Plot):
         )
 
         # Left bar: set sizes
+        bar_colors = None
+        if self.highlight_columns:
+            highlight_set = set(self.highlight_columns)
+            bar_colors = [
+                self.highlight_color if label in highlight_set else self.missing_color
+                for label in set_labels_full
+            ]
+
         fig.add_bar(
             x=set_sizes.values.tolist(),
             y=set_labels_display,
             orientation="h",
-            marker_color=self.missing_color,
+            marker_color=bar_colors if bar_colors is not None else self.missing_color,
             width=0.75,
             text=[str(int(v)) if self.show_values else None for v in set_sizes.values],
             textposition="outside" if self.show_values else None,
@@ -192,6 +204,7 @@ class UpSetPlot(Plot):
         # Matrix dots
         included_x = []
         included_y = []
+        included_colors = []
         excluded_x = []
         excluded_y = []
         line_x = []
@@ -204,12 +217,16 @@ class UpSetPlot(Plot):
             included = [label_map[label] for label in included_full]
             excluded = [label_map[label] for label in excluded_full]
 
-            for label in included:
+            for full_label, display_label in zip(included_full, included):
                 included_x.append(idx)
-                included_y.append(label)
-            for label in excluded:
+                included_y.append(display_label)
+                if self.highlight_columns and full_label in self.highlight_columns:
+                    included_colors.append(self.highlight_color or self.missing_color)
+                else:
+                    included_colors.append(self.missing_color)
+            for display_label in excluded:
                 excluded_x.append(idx)
-                excluded_y.append(label)
+                excluded_y.append(display_label)
 
             if len(included) >= 2:
                 line_x.extend([idx, idx, None])
@@ -238,7 +255,10 @@ class UpSetPlot(Plot):
             x=included_x,
             y=included_y,
             mode="markers",
-            marker=dict(size=self.matrix_dot_size, color=self.missing_color),
+            marker=dict(
+                size=self.matrix_dot_size,
+                color=included_colors if included_colors else self.missing_color,
+            ),
             hovertemplate=(
                 "<b>Columns</b>: %{customdata}<extra></extra>"
             ),

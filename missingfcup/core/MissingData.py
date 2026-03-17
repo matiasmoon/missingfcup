@@ -1,3 +1,4 @@
+import math
 import pandas as pd
 import numpy as np
 from functools import cached_property
@@ -32,6 +33,16 @@ class MissingData:
         False indicates a present value.
         """
         return self.data.isna()
+
+    @cached_property
+    def present_mask(self) -> pd.DataFrame:
+        """
+        Boolean mask of present (non-missing) values.
+
+        True indicates a present value.
+        False indicates a missing value.
+        """
+        return ~self.missing_mask
 
     @cached_property
     def observed_mask(self) -> np.ndarray:
@@ -230,6 +241,37 @@ class MissingData:
         """
         return self.missing_mask.corr()
 
+    @cached_property
+    def present_missing_correlation(self) -> pd.DataFrame:
+        """
+        Correlation between present indicators and missing indicators.
+
+        Returns a matrix where rows represent "present" for a column and
+        columns represent "missing" for a column. Values are Pearson
+        correlations in [-1, 1], with NaN for constant columns.
+        """
+        present = self.present_mask.astype(float)
+        missing = self.missing_mask.astype(float)
+
+        corr = pd.DataFrame(
+            index=present.columns,
+            columns=missing.columns,
+            dtype=float,
+        )
+
+        for col_present in present.columns:
+            x = present[col_present]
+            x_std = x.std()
+            for col_missing in missing.columns:
+                y = missing[col_missing]
+                y_std = y.std()
+                if x_std == 0 or y_std == 0:
+                    corr.loc[col_present, col_missing] = np.nan
+                else:
+                    corr.loc[col_present, col_missing] = x.corr(y)
+
+        return corr
+
     def perfectly_correlated_missing_columns(self) -> list[tuple[str, str]]:
         """
         Return column pairs whose missingness patterns are perfectly correlated.
@@ -352,7 +394,7 @@ class MissingData:
         order_by: Optional[List[Dict]] = None,
         show_colorscale: bool = False,
         group_by_mode: Literal["binary", "missing"] = "binary",
-        xgap: int = 0,
+        xgap: int = 1,
         ygap: int = 0,
         max_label_length: int = 48,
         order_by_border_color: str = "#1f77b4",
@@ -386,6 +428,7 @@ class MissingData:
         *,
         point_size: int = 8,
         axis_padding: float = 0.05,
+        missingness_color_column: Optional[str] = None,
         **kwargs,
     ) -> "ScatterPlot":
         """Create a scatter plot highlighting missingness in two columns."""
@@ -397,6 +440,7 @@ class MissingData:
             y=y,
             point_size=point_size,
             axis_padding=axis_padding,
+            missingness_color_column=missingness_color_column,
             **kwargs,
         )
 
@@ -437,6 +481,8 @@ class MissingData:
         matrix_dot_size: int = 12,
         matrix_line_width: int = 3,
         excluded_dot_color: str = "#e0e0e0",
+        highlight_columns: Optional[List[str]] = None,
+        highlight_color: Optional[str] = None,
         **kwargs,
     ) -> "UpSetPlot":
         """Create an UpSet-style plot of missingness intersections."""
@@ -453,6 +499,8 @@ class MissingData:
             matrix_dot_size=matrix_dot_size,
             matrix_line_width=matrix_line_width,
             excluded_dot_color=excluded_dot_color,
+            highlight_columns=highlight_columns,
+            highlight_color=highlight_color,
             **kwargs,
         )
 
@@ -522,6 +570,41 @@ class MissingData:
             nan_color=nan_color,
             **kwargs,
         )
+
+    def all_correlation_heatmap(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        colorscale: str = "RdBu",
+        show_values: bool = True,
+        max_columns: int = 30,
+        drop_constant_columns: bool = False,
+        order_by_missingness: bool = True,
+        order: Literal["desc", "asc"] = "desc",
+        value_round: int = 1,
+        show_colorbar: bool = True,
+        show_upper_triangle: bool = True,
+        nan_color: str = "#c7c7c7",
+        **kwargs,
+    ) -> "AllCorrelationHeatmap":
+        """Create a heatmap of present-vs-missing correlations for all columns."""
+        from ..plots.AllCorrelationHeatmap import AllCorrelationHeatmap
+
+        return AllCorrelationHeatmap(
+            data=self,
+            selected_columns=selected_columns,
+            colorscale=colorscale,
+            show_values=show_values,
+            max_columns=max_columns,
+            drop_constant_columns=drop_constant_columns,
+            order_by_missingness=order_by_missingness,
+            order=order,
+            value_round=value_round,
+            show_colorbar=show_colorbar,
+            show_upper_triangle=show_upper_triangle,
+            nan_color=nan_color,
+            **kwargs,
+        )
     
     def column_missing_rate_heatmap(
         self,
@@ -557,3 +640,230 @@ class MissingData:
             max_labels_with_values=max_labels_with_values,
             **kwargs,
         )
+
+    def dendrogram(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        max_columns: int = 30,
+        drop_constant_columns: bool = True,
+        linkage_method: Literal[
+            "single", "complete", "average", "weighted", "centroid", "median", "ward"
+        ] = "average",
+        use_abs_correlation: bool = False,
+        line_width: int = 2,
+        line_color: str = "#4C78A8",
+        **kwargs,
+    ) -> "Dendrogram":
+        """Create a dendrogram of missingness correlation between columns."""
+        from ..plots.Dendrogram import Dendrogram
+
+        return Dendrogram(
+            data=self,
+            selected_columns=selected_columns,
+            max_columns=max_columns,
+            drop_constant_columns=drop_constant_columns,
+            linkage_method=linkage_method,
+            use_abs_correlation=use_abs_correlation,
+            line_width=line_width,
+            line_color=line_color,
+            **kwargs,
+        )
+
+    # MARK: - Statistical Tests
+
+    def littles_mcar_test(
+        self,
+        *,
+        columns: Optional[List[str]] = None,
+        numeric_only: bool = True,
+        use_pairwise_cov: bool = True,
+        regularize: float = 1e-6,
+        max_iter: int = 200,
+        tol: float = 1e-10,
+    ) -> pd.Series:
+        """
+        Perform Little's MCAR (Missing Completely At Random) test.
+
+        Parameters
+        ----------
+        columns : list[str], optional
+            Columns to include in the test. If None, uses all columns.
+        numeric_only : bool, default True
+            If True, keeps only numeric columns (recommended).
+        use_pairwise_cov : bool, default True
+            If True, computes covariance pairwise using all available rows per pair.
+            If False, uses only complete cases across selected columns.
+        regularize : float, default 1e-6
+            Diagonal ridge added to covariance submatrices for numerical stability.
+        max_iter : int, default 200
+            Maximum iterations for incomplete gamma approximation.
+        tol : float, default 1e-10
+            Convergence tolerance for incomplete gamma approximation.
+
+        Returns
+        -------
+        pandas.Series
+            Contains chi2 statistic, degrees of freedom, p-value,
+            number of patterns, and columns used.
+
+        Notes
+        -----
+        - The test assumes approximately multivariate normal data.
+        - Non-numeric columns are ignored when numeric_only=True.
+        """
+        df = self.data if columns is None else self.data.loc[:, columns]
+
+        if numeric_only:
+            df = df.loc[:, [c for c in df.columns if is_numeric_dtype(df[c])]]
+
+        if df.empty or df.shape[1] == 0:
+            raise ValueError("No usable columns for Little's MCAR test.")
+
+        x = df.to_numpy(dtype=float)
+        mask = ~np.isnan(x)
+
+        # Drop columns with all missing values
+        col_has_obs = mask.any(axis=0)
+        x = x[:, col_has_obs]
+        mask = mask[:, col_has_obs]
+        used_columns = df.columns[col_has_obs].tolist()
+
+        if x.shape[1] == 0:
+            raise ValueError("All selected columns are fully missing.")
+
+        # Overall mean (column-wise)
+        mu = np.nanmean(x, axis=0)
+
+        # Covariance estimate
+        if use_pairwise_cov:
+            p = x.shape[1]
+            cov = np.full((p, p), np.nan, dtype=float)
+            for i in range(p):
+                xi = x[:, i]
+                for j in range(i, p):
+                    xj = x[:, j]
+                    valid = ~np.isnan(xi) & ~np.isnan(xj)
+                    if valid.sum() <= 1:
+                        cov_ij = np.nan
+                    else:
+                        cov_ij = np.cov(xi[valid], xj[valid], ddof=1)[0, 1]
+                    cov[i, j] = cov_ij
+                    cov[j, i] = cov_ij
+        else:
+            complete = mask.all(axis=1)
+            if complete.sum() <= 1:
+                raise ValueError("Not enough complete rows to estimate covariance.")
+            cov = np.cov(x[complete], rowvar=False, ddof=1)
+
+        # Replace NaNs in covariance with zeros (fallback for sparse pairs)
+        cov = np.nan_to_num(cov, nan=0.0)
+
+        # Build pattern groups
+        pattern_keys = {}
+        for idx, row_mask in enumerate(mask):
+            key = tuple(row_mask.tolist())
+            pattern_keys.setdefault(key, []).append(idx)
+
+        chi2 = 0.0
+        df_total = 0
+        patterns_used = 0
+
+        for key, row_idx in pattern_keys.items():
+            obs_idx = [i for i, observed in enumerate(key) if observed]
+            if len(obs_idx) == 0:
+                continue
+            rows = np.array(row_idx, dtype=int)
+            xg = x[np.ix_(rows, obs_idx)]
+            if xg.size == 0:
+                continue
+            mean_g = xg.mean(axis=0)
+            mean_all = mu[obs_idx]
+
+            sg = cov[np.ix_(obs_idx, obs_idx)]
+            if regularize > 0:
+                sg = sg + np.eye(len(obs_idx)) * regularize
+
+            try:
+                inv_sg = np.linalg.pinv(sg)
+            except np.linalg.LinAlgError:
+                continue
+
+            diff = mean_g - mean_all
+            chi2 += len(rows) * float(diff.T @ inv_sg @ diff)
+            df_total += len(obs_idx)
+            patterns_used += 1
+
+        p = x.shape[1]
+        df_stat = df_total - p
+        if df_stat <= 0:
+            raise ValueError("Degrees of freedom <= 0; not enough information for the test.")
+
+        p_value = self._chi2_sf(chi2, df_stat, max_iter=max_iter, tol=tol)
+
+        return pd.Series(
+            {
+                "chi2": chi2,
+                "df": df_stat,
+                "p_value": p_value,
+                "n_patterns": patterns_used,
+                "n_rows": x.shape[0],
+                "n_columns": x.shape[1],
+                "columns_used": used_columns,
+            }
+        )
+
+    @staticmethod
+    def _chi2_sf(x: float, k: int, *, max_iter: int = 200, tol: float = 1e-10) -> float:
+        """Survival function (1-CDF) for chi-square using regularized gamma."""
+        if x < 0 or k <= 0:
+            return float("nan")
+        a = 0.5 * k
+        z = 0.5 * x
+        if z == 0:
+            return 1.0
+        return MissingData._gammaincc(a, z, max_iter=max_iter, tol=tol)
+
+    @staticmethod
+    def _gammaincc(a: float, x: float, *, max_iter: int = 200, tol: float = 1e-10) -> float:
+        """Regularized upper incomplete gamma Q(a, x)."""
+        if x < 0 or a <= 0:
+            return float("nan")
+
+        # Series for P(a, x) when x < a + 1
+        if x < a + 1.0:
+            ap = a
+            summation = 1.0 / a
+            delta = summation
+            for _ in range(max_iter):
+                ap += 1.0
+                delta *= x / ap
+                summation += delta
+                if abs(delta) < abs(summation) * tol:
+                    break
+            log_term = -x + a * math.log(x) - math.lgamma(a)
+            p = summation * math.exp(log_term)
+            return max(0.0, 1.0 - p)
+
+        # Continued fraction for Q(a, x) when x >= a + 1
+        b = x + 1.0 - a
+        c = 1.0 / 1e-30
+        d = 1.0 / b
+        h = d
+        for i in range(1, max_iter + 1):
+            an = -i * (i - a)
+            b += 2.0
+            d = an * d + b
+            if abs(d) < 1e-30:
+                d = 1e-30
+            c = b + an / c
+            if abs(c) < 1e-30:
+                c = 1e-30
+            d = 1.0 / d
+            delta = d * c
+            h *= delta
+            if abs(delta - 1.0) < tol:
+                break
+        log_term = -x + a * math.log(x) - math.lgamma(a)
+        q = h * math.exp(log_term)
+        return max(0.0, min(1.0, q))
