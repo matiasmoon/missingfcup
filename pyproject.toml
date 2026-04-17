@@ -36,6 +36,9 @@ keywords = [
     "pandas"
 ]
 
+[tool.setuptools.packages.find]
+where = ["missingfcup/src"]
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
