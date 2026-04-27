@@ -250,14 +250,22 @@ class _Heatmap(_Plot):
                 else None,
                 hovertemplate=(
                     "<b>Row</b>: %{y}<br>"
-                    "<b>Column</b>: %{customdata}<br>"
-                    "<b>Status</b>: %{text}<extra></extra>"
+                    "<b>Column</b>: %{customdata[0]}<br>"
+                    "<b>Status</b>: %{text}<br>"
+                    "<b>Value</b>: %{customdata[1]}<extra></extra>"
                 ),
                 text=[
                     ["Present" if v == 1 else "Missing" for v in row]
                     for row in z
                 ],
-                customdata=[df.columns.tolist() for _ in range(len(df))],
+                customdata=np.stack([
+                    np.array([[col for col in df.columns] for _ in range(len(df))]),
+                    np.where(
+                        mask.to_numpy(),
+                        "NaN",
+                        df.to_numpy(dtype=object),
+                    ),
+                ], axis=-1),
             )
         )
 
@@ -266,6 +274,9 @@ class _Heatmap(_Plot):
             tickvals=x_positions,
             ticktext=x_labels,
             tickangle=-45,
+        )
+        fig.update_yaxes(
+            title_standoff=15,
         )
 
         # Outline order-by columns (if any) to make ordering visible

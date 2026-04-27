@@ -6,11 +6,11 @@ from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
 
 try:
-    from scipy.cluster.hierarchy import linkage, dendrogram
+    from scipy.cluster.hierarchy import linkage, dendrogram as _scipy_dendrogram
     from scipy.spatial.distance import squareform
 except Exception as exc:  # pragma: no cover - runtime optional dependency
     linkage = None
-    dendrogram = None
+    _scipy_dendrogram = None
     squareform = None
     _SCIPY_IMPORT_ERROR = exc
 else:
@@ -47,7 +47,7 @@ class _Dendrogram(_Plot):
         self.line_color = line_color
 
     def _build_figure(self) -> go.Figure:
-        if linkage is None or dendrogram is None or squareform is None:
+        if linkage is None or _scipy_dendrogram is None or squareform is None:
             raise ImportError(
                 "Dendrogram requires scipy. Install it with: pip install scipy"
             ) from _SCIPY_IMPORT_ERROR
@@ -73,7 +73,7 @@ class _Dendrogram(_Plot):
 
         if missing_matrix.shape[1] < 2:
             raise ValueError(
-                "Not enough columns with varying missingness to compute dendrogram."
+                "Not enough columns with varying missingness to compute _scipy_dendrogram."
             )
 
         with np.errstate(invalid="ignore", divide="ignore"):
@@ -88,7 +88,7 @@ class _Dendrogram(_Plot):
 
         condensed = squareform(distance.values, checks=False)
         linkage_matrix = linkage(condensed, method=self.linkage_method)
-        dendro = dendrogram(
+        dendro = _scipy_dendrogram(
             linkage_matrix,
             labels=list(distance.columns),
             no_plot=True,
@@ -116,8 +116,11 @@ class _Dendrogram(_Plot):
                 tickvals=leaf_positions,
                 ticktext=labels,
                 tickangle=-45,
+                title=labels[0] if labels else "",
             ),
-            yaxis=dict(),
+            yaxis=dict(
+                title="Distance",
+            ),
         )
 
         self._apply_base_layout(fig)

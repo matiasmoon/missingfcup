@@ -14,8 +14,8 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Two plots
     # ------------------------------------------------------------------
-    p1 = data.missing_count_barchart(title="Missing Count by Column")
-    p2 = data.scatterplot(
+    p1 = data.barchart_missing_count(title="Missing Count by Column")
+    p2 = data.scatterplot_missingness(
         x="NUMBER OF PERSONS INJURED",
         y="NUMBER OF PERSONS KILLED",
         title="Injuries vs Fatalities",
@@ -29,7 +29,7 @@ def main():
         selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME"],
         title="ZIP/Borough/Off-Street Patterns",
     )
-    p4 = data.scatterplot(
+    p4 = data.scatterplot_missingness(
         x="ZIP CODE",
         y="LATITUDE",
         title="ZIP Code vs Latitude",
@@ -45,7 +45,7 @@ def main():
     # ------------------------------------------------------------------
     # 3️⃣ Three plots
     # ------------------------------------------------------------------
-    p5 = data.missing_count_barchart(
+    p5 = data.barchart_missing_count(
         max_columns=12,
         title="Missing Count (Top 12)",
     )
@@ -54,7 +54,7 @@ def main():
         title="Street Fields Patterns",
         value="percent",
     )
-    p7 = data.scatterplot(
+    p7 = data.scatterplot_missingness(
         x="NUMBER OF PEDESTRIANS INJURED",
         y="NUMBER OF PEDESTRIANS KILLED",
         title="Pedestrians: Injured vs Killed",
@@ -64,7 +64,7 @@ def main():
     # ------------------------------------------------------------------
     # 4️⃣ Four plots
     # ------------------------------------------------------------------
-    p8 = data.missing_count_barchart(
+    p8 = data.barchart_missing_count(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -80,12 +80,12 @@ def main():
         ],
         title="Contributing Factors (Patterns)",
     )
-    p10 = data.scatterplot(
+    p10 = data.scatterplot_missingness(
         x="NUMBER OF PERSONS INJURED",
         y="ZIP CODE",
         title="People Injured vs ZIP Code",
     )
-    p11 = data.scatterplot(
+    p11 = data.scatterplot_missingness(
         x="LATITUDE",
         y="LONGITUDE",
         title="Latitude vs Longitude",
@@ -95,7 +95,7 @@ def main():
     # ------------------------------------------------------------------
     # 5️⃣ Four plots (dark theme)
     # ------------------------------------------------------------------
-    p12 = data.missing_count_barchart(
+    p12 = data.barchart_missing_count(
         max_columns=10,
         title="Missing Count (Top 10)",
         present_color="#17becf",
@@ -106,13 +106,13 @@ def main():
         title="Location Patterns",
         missing_color="#ff7f0e",
     )
-    p14 = data.scatterplot(
+    p14 = data.scatterplot_missingness(
         x="NUMBER OF PERSONS KILLED",
         y="NUMBER OF PEDESTRIANS KILLED",
         title="Fatalities: Persons vs Pedestrians",
         point_size=7,
     )
-    p15 = data.scatterplot(
+    p15 = data.scatterplot_missingness(
         x="NUMBER OF PERSONS INJURED",
         y="NUMBER OF PEDESTRIANS INJURED",
         title="Injuries: Persons vs Pedestrians",

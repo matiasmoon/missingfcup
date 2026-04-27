@@ -14,17 +14,17 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    md.dendrogram().show()
+    md.dendrogram_missingness().show()
 
     # ------------------------------------------------------------------
     # 2️⃣-3️⃣ Simple with personalization
     # ------------------------------------------------------------------
-    md.dendrogram(
+    md.dendrogram_missingness(
         selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME", "ON STREET NAME"],
         title="Location Fields",
     ).show()
 
-    md.dendrogram(
+    md.dendrogram_missingness(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -38,19 +38,19 @@ def main():
     # ------------------------------------------------------------------
     # 4️⃣-6️⃣ More complex
     # ------------------------------------------------------------------
-    md.dendrogram(
+    md.dendrogram_missingness(
         max_columns=15,
         title="Top 15 Columns by Missingness",
     ).show()
 
-    md.dendrogram(
+    md.dendrogram_missingness(
         max_columns=15,
         title="Absolute Correlation (|corr|)",
         use_abs_correlation=True,
         linkage_method="average",
     ).show()
 
-    md.dendrogram(
+    md.dendrogram_missingness(
         selected_columns=[
             "ZIP CODE",
             "BOROUGH",

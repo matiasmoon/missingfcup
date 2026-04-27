@@ -14,17 +14,17 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    md.missing_missing_heatmap().show()
+    md.heatmap_missingness_correlation_missing_missing().show()
 
     # ------------------------------------------------------------------
     # 2️⃣-5️⃣ Simple with personalization
     # ------------------------------------------------------------------
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME", "ON STREET NAME"],
         title="Location Fields (Missingness Correlation)",
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -36,7 +36,7 @@ def main():
         show_values=False,
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=[
             "VEHICLE TYPE CODE 1",
             "VEHICLE TYPE CODE 2",
@@ -48,7 +48,7 @@ def main():
         value_round=1,
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=[
             "ON STREET NAME",
             "CROSS STREET NAME",
@@ -63,14 +63,14 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣-🔟 More complex
     # ------------------------------------------------------------------
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         max_columns=12,
         title="Top 12 Columns by Missingness",
         show_values=False,
         order="desc",
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         max_columns=12,
         title="Top 12 (Lower Triangle Only)",
         show_upper_triangle=False,
@@ -78,7 +78,7 @@ def main():
         colorscale="RdBu",
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -94,7 +94,7 @@ def main():
         value_round=2,
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         selected_columns=[
             "ZIP CODE",
             "BOROUGH",
@@ -108,7 +108,7 @@ def main():
         colorscale="RdBu",
     ).show()
 
-    md.missing_missing_heatmap(
+    md.heatmap_missingness_correlation_missing_missing(
         max_columns=16,
         title="Broad Overview (16 Columns)",
         show_values=False,

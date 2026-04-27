@@ -93,8 +93,8 @@ class _BoxplotMissingness(_Plot):
             marker_color=self.missing_color,
         ))
 
-        fig.update_layout(
-        )
+        fig.update_xaxes(tickangle=-45)
+        fig.update_yaxes(title_text=self.x)
 
         self._apply_base_layout(fig)
         return fig

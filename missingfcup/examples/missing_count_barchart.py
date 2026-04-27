@@ -19,18 +19,18 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Basic default (missing counts)
     # ------------------------------------------------------------------
-    md.missing_count_barchart().show()
+    md.barchart_missing_count().show()
 
     # ------------------------------------------------------------------
     # 2️⃣ Missing counts with a title
     # ------------------------------------------------------------------
-    bc_titled = md.missing_count_barchart(title="Missing Count by Column")
+    bc_titled = md.barchart_missing_count(title="Missing Count by Column")
     bc_titled.show()
 
     # ------------------------------------------------------------------
     # 3️⃣ Missing counts for a small subset
     # ------------------------------------------------------------------
-    bc_subset = md.missing_count_barchart(
+    bc_subset = md.barchart_missing_count(
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
             "NUMBER OF PERSONS KILLED",
@@ -43,7 +43,7 @@ def main():
     # ------------------------------------------------------------------
     # 4️⃣ Missing counts (top 15 columns)
     # ------------------------------------------------------------------
-    bc_top15 = md.missing_count_barchart(
+    bc_top15 = md.barchart_missing_count(
         order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
         max_columns=15,
         title="Missing Count (Top 15 Columns)",
@@ -53,7 +53,7 @@ def main():
     # ------------------------------------------------------------------
     # 5️⃣ Missing counts (most missing first)
     # ------------------------------------------------------------------
-    bc_most_missing = md.missing_count_barchart(
+    bc_most_missing = md.barchart_missing_count(
         order_by=[{"column": "__missing__", "type": "numeric", "ascending": False}],
         title="Missing Count (Most Missing First)",
         max_columns=20,
@@ -63,7 +63,7 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣ Missing counts (least missing first)
     # ------------------------------------------------------------------
-    bc_least_missing = md.missing_count_barchart(
+    bc_least_missing = md.barchart_missing_count(
         order_by=[{"column": "__missing__", "type": "numeric", "ascending": True}],
         title="Missing Count (Least Missing First)",
         max_columns=20,
@@ -73,7 +73,7 @@ def main():
     # ------------------------------------------------------------------
     # 7️⃣ Missing counts for injury-related columns
     # ------------------------------------------------------------------
-    bc_injury = md.missing_count_barchart(
+    bc_injury = md.barchart_missing_count(
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
             "NUMBER OF PERSONS KILLED",
@@ -88,7 +88,7 @@ def main():
     # ------------------------------------------------------------------
     # 8️⃣ Missing counts after excluding high-missingness columns
     # ------------------------------------------------------------------
-    bc_filtered = md.missing_count_barchart(
+    bc_filtered = md.barchart_missing_count(
         ignore_high_missingness=True,
         high_missingness_threshold=0.6,
         title="Missing Count (Exclude ≥ 60% Missing)",
@@ -98,7 +98,7 @@ def main():
     # ------------------------------------------------------------------
     # 9️⃣ Present counts with completeness-based filtering
     # ------------------------------------------------------------------
-    bc_complete = md.missing_count_barchart(
+    bc_complete = md.barchart_missing_count(
         completeness_mode="most",
         completeness_threshold=0.9,
         max_columns_by_completeness=15,
@@ -110,7 +110,7 @@ def main():
     # ------------------------------------------------------------------
     # 🔟 Missing vs Present (stacked counts)
     # ------------------------------------------------------------------
-    bc_stacked = md.missing_count_barchart(
+    bc_stacked = md.barchart_missing_count(
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
             "NUMBER OF PERSONS KILLED",

@@ -51,6 +51,7 @@ class _BarchartOverallMissingness(_Plot):
             yaxis=dict(range=[0, max_y * 1.18]),
             showlegend=False,
         )
+        fig.update_yaxes(title_text="Count")
 
         self._apply_base_layout(fig)
         return fig

@@ -14,17 +14,17 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    md.column_missing_rate_heatmap().show()
+    md.heatmap_missingness_missing_rate().show()
 
     # ------------------------------------------------------------------
     # 2️⃣-5️⃣ Simple with personalization
     # ------------------------------------------------------------------
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME"],
         title="ZIP/Borough/Off-Street Missingness",
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -36,7 +36,7 @@ def main():
         show_values=True,
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=[
             "VEHICLE TYPE CODE 1",
             "VEHICLE TYPE CODE 2",
@@ -48,7 +48,7 @@ def main():
         value_round=1,
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=[
             "ON STREET NAME",
             "CROSS STREET NAME",
@@ -63,21 +63,21 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣-🔟 More complex
     # ------------------------------------------------------------------
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         max_columns=12,
         title="Top 12 Columns by Missingness",
         show_values=False,
         order="desc",
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         max_columns=12,
         title="Top 12 (No Colorbar)",
         show_values=False,
         show_colorbar=False,
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -93,7 +93,7 @@ def main():
         value_round=2,
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         selected_columns=[
             "ZIP CODE",
             "BOROUGH",
@@ -107,7 +107,7 @@ def main():
         colorscale="Reds",
     ).show()
 
-    md.column_missing_rate_heatmap(
+    md.heatmap_missingness_missing_rate(
         max_columns=16,
         title="Broad Overview (16 Columns)",
         show_values=False,

@@ -150,7 +150,9 @@ class _ColumnMissingRateHeatmap(_Plot):
         )
 
         fig.update_layout(yaxis=dict(showticklabels=False))
-        fig.update_xaxes(tickangle=-45)
+        first_col = values.index[0] if len(values) > 0 else ""
+        fig.update_xaxes(tickangle=-45, title_text=first_col)
+        fig.update_yaxes(title_standoff=15)
 
         self._apply_base_layout(fig)
 

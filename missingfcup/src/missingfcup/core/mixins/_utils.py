@@ -83,6 +83,44 @@ class _MissingDataUtilsMixin:
 
         return corr
 
+    @cached_property
+    def value_missing_corr(self) -> pd.DataFrame:
+        """
+        Point-biserial correlation between column values and missingness indicators.
+
+        cell[i, j] = Pearson correlation between the observed values of column i
+        and the binary missingness indicator of column j (1=missing, 0=present).
+        Only rows where column i is observed are used (pairwise complete cases).
+
+        Positive value → higher values of i associate with j being missing.
+        Negative value → lower values of i associate with j being missing.
+        NaN → column i is non-numeric, constant, or j has no variance in missingness.
+        """
+        missing = self.mask_missing.astype(float)
+
+        corr = pd.DataFrame(
+            index=self.data.columns,
+            columns=missing.columns,
+            dtype=float,
+        )
+
+        for col_val in self.data.columns:
+            x = pd.to_numeric(self.data[col_val], errors="coerce")
+            for col_miss in missing.columns:
+                y = missing[col_miss]
+                valid = x.notna()
+                x_valid = x[valid]
+                y_valid = y[valid]
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    x_std = x_valid.std()
+                    y_std = y_valid.std()
+                if x_std == 0 or y_std == 0 or len(x_valid) < 2:
+                    corr.loc[col_val, col_miss] = np.nan
+                else:
+                    corr.loc[col_val, col_miss] = x_valid.corr(y_valid)
+
+        return corr
+
     # ------------------------------------------------------------------
     # Pattern analysis
     # ------------------------------------------------------------------

@@ -107,6 +107,8 @@ class _DensityMissingness(_Plot):
                 line=dict(color="black", width=1.5),
             )
 
+        fig.update_xaxes(title_text=self.x)
+        fig.update_yaxes(title_text="Density")
         fig.update_layout(dragmode="pan")
         self._apply_base_layout(fig)
         return fig

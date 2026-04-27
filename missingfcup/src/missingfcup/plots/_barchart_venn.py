@@ -161,7 +161,8 @@ class _BarchartVenn(_Plot):
             uniformtext=dict(minsize=8, mode="hide"),
         )
         fig.update_traces(textangle=0, textfont=dict(size=10), cliponaxis=False)
-        fig.update_yaxes(automargin=True, rangemode="tozero")
+        fig.update_xaxes(title_text=a)
+        fig.update_yaxes(automargin=True, rangemode="tozero", title_text=y_title)
 
         max_val = max(values) if values else 0
         if max_val > 0:

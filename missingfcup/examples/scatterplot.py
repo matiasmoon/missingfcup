@@ -19,7 +19,7 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF PERSONS INJURED",
         y="NUMBER OF PERSONS KILLED",
     ).show()
@@ -27,20 +27,20 @@ def main():
     # ------------------------------------------------------------------
     # 2️⃣-5️⃣ Simple with personalization
     # ------------------------------------------------------------------
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="ZIP CODE",
         y="LATITUDE",
         title="ZIP Code vs Latitude (Missing ZIP Only)",
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="ZIP CODE",
         y="LONGITUDE",
         title="ZIP Code vs Longitude (Missing ZIP Only)",
         point_size=10,
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF PEDESTRIANS INJURED",
         y="NUMBER OF PEDESTRIANS KILLED",
         title="Pedestrians: Injured vs Killed (Complete)",
@@ -48,7 +48,7 @@ def main():
         missing_color="#ff7f0e",
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF PERSONS INJURED",
         y="ZIP CODE",
         title="People Injured vs ZIP Code (Missing ZIP Only)",
@@ -58,7 +58,7 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣-🔟 More complex
     # ------------------------------------------------------------------
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="LATITUDE",
         y="LONGITUDE",
         title="Latitude vs Longitude (Complete)",
@@ -68,7 +68,7 @@ def main():
         axis_padding=0.08,
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF CYCLISTS INJURED",
         y="NUMBER OF CYCLISTS KILLED",
         title="Cyclists: Injured vs Killed (All Missing)",
@@ -80,7 +80,7 @@ def main():
         axis_padding=0.1,
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF CYCLISTS INJURED",
         y="NUMBER OF PERSONS INJURED",
         title="Cyclists Injured vs All Persons Injured (Missing X)",
@@ -94,7 +94,7 @@ def main():
         axis_padding=0.06,
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="ZIP CODE",
         y="NUMBER OF CYCLISTS INJURED",
         title="ZIP Code vs Cyclists Injured (Missing Y + Both)",
@@ -108,7 +108,7 @@ def main():
         axis_padding=0.12,
     ).show()
 
-    data.scatterplot(
+    data.scatterplot_missingness(
         x="NUMBER OF PERSONS KILLED",
         y="NUMBER OF CYCLISTS KILLED",
         title="All Persons Killed vs Cyclists Killed (Missing Y)",

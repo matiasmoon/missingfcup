@@ -146,29 +146,32 @@ class _HeatmapCorrelation(_Plot):
             "missing_missing": dict(
                 title=(
                     "Missingness correlation"
+                    "<br><span style='font-size:10px'>blue = missing together | red = mutually exclusive</span>"
                     "<br><span style='font-size:10px'>NaN = insufficient overlap</span>"
                 ),
                 tickmode="array",
                 tickvals=[-1, 0, 1],
-                ticktext=["Mutually exclusive", "Independent", "Missing together"],
+                ticktext=["One missing → other present", "Independent", "Missing together"],
             ),
             "present_present": dict(
                 title=(
                     "Presence correlation"
+                    "<br><span style='font-size:10px'>blue = present together | red = mutually exclusive</span>"
                     "<br><span style='font-size:10px'>NaN = constant column</span>"
                 ),
                 tickmode="array",
                 tickvals=[-1, 0, 1],
-                ticktext=["Mutually exclusive", "Independent", "Present together"],
+                ticktext=["One present → other absent", "Independent", "Present together"],
             ),
             "present_missing": dict(
                 title=(
                     "Present vs Missing"
+                    "<br><span style='font-size:10px'>blue = present → missing | red = both present</span>"
                     "<br><span style='font-size:10px'>NaN = constant column</span>"
                 ),
                 tickmode="array",
                 tickvals=[-1, 0, 1],
-                ticktext=["Present together", "Independent", "Present → Missing"],
+                ticktext=["Both present", "Independent", "Present → missing"],
             ),
         }
         return configs[self.mode]
@@ -199,10 +202,10 @@ class _HeatmapCorrelation(_Plot):
 
         effective_show_values = self.show_values and corr.shape[0] <= 30
 
-        # Hide upper triangle when requested
-        if not self.show_upper_triangle:
+        # Show only upper triangle when requested — mask the strict lower triangle
+        if self.show_upper_triangle:
             tri_mask = pd.DataFrame(
-                np.triu(np.ones(corr.shape, dtype=bool), k=1),
+                np.tril(np.ones(corr.shape, dtype=bool), k=-1),
                 index=corr.index,
                 columns=corr.columns,
             )
@@ -217,11 +220,15 @@ class _HeatmapCorrelation(_Plot):
             text = np.empty(corr_values.shape, dtype=object)
             rounded = np.round(corr_values, self.value_round)
             for idx in np.ndindex(text.shape):
-                val = rounded[idx]
-                if np.isnan(val) or np.isclose(val, 0.0):
+                raw = corr_values[idx]
+                r = rounded[idx]
+                if np.isnan(r) or np.isclose(r, 0.0):
                     text[idx] = ""
+                elif np.isclose(abs(r), 1.0) and not np.isclose(abs(raw), 1.0):
+                    text[idx] = "<1" if r > 0 else ">-1"
                 else:
-                    text[idx] = val
+                    fmt = f"{r:.{self.value_round}f}"
+                    text[idx] = fmt.rstrip("0").rstrip(".")
         else:
             text = None
 
@@ -250,6 +257,7 @@ class _HeatmapCorrelation(_Plot):
                 zmid=0,
                 text=text if effective_show_values else None,
                 texttemplate="%{text}" if effective_show_values else None,
+                showscale=self.show_colorbar,
                 colorbar=self._colorbar_config() if self.show_colorbar else None,
                 hovertemplate=self._hover_template(),
                 hoverongaps=False,
@@ -257,6 +265,6 @@ class _HeatmapCorrelation(_Plot):
         )
 
         fig.update_xaxes(tickangle=-45)
-        fig.update_yaxes(tickangle=0)
+        fig.update_yaxes(tickangle=0, title_standoff=15)
         self._apply_base_layout(fig)
         return fig

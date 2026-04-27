@@ -26,6 +26,8 @@ class _ScatterPlot(_Plot):
         jitter: float = 0.02,
         missing_jitter: float = 0.5,
         jitter_seed: int = 42,
+        xaxis_range: Optional[list] = None,
+        yaxis_range: Optional[list] = None,
         **kwargs,
     ):
         default_legend_title = (
@@ -44,6 +46,8 @@ class _ScatterPlot(_Plot):
         self.jitter = jitter
         self.missing_jitter = missing_jitter
         self.jitter_seed = jitter_seed
+        self.xaxis_range = xaxis_range
+        self.yaxis_range = yaxis_range
 
     # ------------------------------------------------------------------
     # Figure construction
@@ -66,7 +70,7 @@ class _ScatterPlot(_Plot):
         for col, axis in [(self.x, "x"), (self.y, "y")]:
             if not pd.api.types.is_numeric_dtype(df[col]):
                 raise TypeError(
-                    f"scatterplot() requires numeric columns.\n"
+                    f"scatterplot_missingness() requires numeric columns.\n"
                     f"Column '{col}' has dtype '{df[col].dtype}'.\n"
                     f"Encode it first, e.g.:\n"
                     f"  df['{col}'] = pd.factorize(df['{col}'])[0]  # ordinal / nominal\n"
@@ -242,8 +246,8 @@ class _ScatterPlot(_Plot):
                 span = max_val - min_val or 1.0
                 return [min_val - span * self.axis_padding, max_val + span * 0.15]
 
-            fig.update_xaxes(range=padded_range(x, x_offset), **self._axis_tick_settings(x))
-            fig.update_yaxes(range=padded_range(y, y_offset), **self._axis_tick_settings(y))
+            fig.update_xaxes(range=self.xaxis_range or padded_range(x, x_offset), title_text=self.x, **self._axis_tick_settings(x))
+            fig.update_yaxes(range=self.yaxis_range or padded_range(y, y_offset), title_text=self.y, **self._axis_tick_settings(y))
             self._apply_base_layout(fig)
             return fig
 
@@ -345,8 +349,8 @@ class _ScatterPlot(_Plot):
 
             return [min_val - pad, max_val + pad]
 
-        fig.update_xaxes(range=padded_range(x, x_offset))
-        fig.update_yaxes(range=padded_range(y, y_offset))
+        fig.update_xaxes(range=self.xaxis_range or padded_range(x, x_offset), title_text=self.x)
+        fig.update_yaxes(range=self.yaxis_range or padded_range(y, y_offset), title_text=self.y)
 
         self._apply_base_layout(fig)
 

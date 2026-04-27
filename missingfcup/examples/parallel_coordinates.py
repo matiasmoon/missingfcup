@@ -19,7 +19,7 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Minimal
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=cols,
         missingness_color_column="Ozone",
     ).show()
@@ -27,7 +27,7 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣b Missingness-only view (0/1) with transparency
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=cols,
         missingness_color_column="Ozone",
         missingness_only=True,
@@ -40,7 +40,7 @@ def main():
     # ------------------------------------------------------------------
     # 2️⃣ Emphasize missingness in Solar.R
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=cols,
         missingness_color_column="Solar.R",
         title="airquality: Missingness in Solar.R",
@@ -52,7 +52,7 @@ def main():
     # ------------------------------------------------------------------
     # 3️⃣ Compact layout
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=cols,
         missingness_color_column="Ozone",
         title="airquality: Compact Layout",
@@ -65,7 +65,7 @@ def main():
     # ------------------------------------------------------------------
     # 4️⃣ Styling (background + text)
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=cols,
         missingness_color_column="Ozone",
         title="airquality: Styled",
@@ -79,7 +79,7 @@ def main():
     # ------------------------------------------------------------------
     # 5️⃣ Emulate paper-style view (10% below range)
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=["Temp", "Ozone", "Solar.R", "Wind", "Month", "Day"],
         missingness_color_column="Ozone",
         title="airquality: Ozone Missingness (10% below range)",
@@ -95,7 +95,7 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣ Focused subset (Temp/Wind/Ozone/Solar.R)
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=["Temp", "Ozone", "Wind", "Solar.R"],
         missingness_color_column="Ozone",
         title="airquality: Ozone Missingness vs Temp/Wind/Solar.R",
@@ -109,7 +109,7 @@ def main():
     # ------------------------------------------------------------------
     # 7️⃣ Alternate focus: Solar.R missingness
     # ------------------------------------------------------------------
-    data.parallel_coordinates(
+    data.parallel_coordinates_missingness(
         selected_columns=["Temp", "Solar.R", "Ozone", "Wind", "Month", "Day"],
         missingness_color_column="Solar.R",
         title="airquality: Solar.R Missingness (10% below range)",

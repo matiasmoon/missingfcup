@@ -30,19 +30,19 @@ class MissingData(
     Plots that operate on the **missingness structure** (i.e. which cells are NaN)
     work transparently with any dtype — categorical, object, or numeric:
 
-        heatmap, missing_count_barchart, column_missing_rate_heatmap,
-        barchart_intersection, barchart_venn, dendrogram,
-        missing_missing_heatmap, present_present_heatmap, present_missing_heatmap
+        heatmap_missingness, barchart_missing_count, heatmap_missingness_missing_rate,
+        barchart_intersection, barchart_venn, dendrogram_missingness,
+        heatmap_missingness_correlation_missing_missing, heatmap_missingness_correlation_present_present, heatmap_missingness_correlation_present_missing
 
     Plots that render **actual data values** require numeric columns:
 
-        scatterplot, parallel_coordinates, boxplot_missingness
+        scatterplot_missingness, parallel_coordinates_missingness, boxplot_missingness
 
     Encode categorical columns before passing to these plots, e.g.::
 
         df["col"] = pd.factorize(df["col"])[0]   # ordinal / nominal
 
-    ``parallel_coordinates(missingness_only=True)`` is an escape hatch that
+    ``parallel_coordinates_missingness(missingness_only=True)`` is an escape hatch that
     renders all columns as binary (present/missing) regardless of dtype.
 
     Examples

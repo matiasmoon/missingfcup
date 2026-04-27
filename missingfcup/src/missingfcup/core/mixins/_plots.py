@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from missingfcup.plots._dendrogram import _Dendrogram
     from missingfcup.plots._boxplot_missingness import _BoxplotMissingness
     from missingfcup.plots._density_missingness import _DensityMissingness
+    from missingfcup.plots._heatmap_value_missingness import _HeatmapValueMissingness
 
 
 class _MissingDataPlotMixin:
@@ -25,7 +26,7 @@ class _MissingDataPlotMixin:
     (inside the method body) to avoid circular imports between core and plots.
     """
 
-    def missing_count_barchart(
+    def barchart_missing_count(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
@@ -62,13 +63,13 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def overall_missingness_barchart(self, **kwargs) -> "_BarchartOverallMissingness":
+    def barchart_overall_missingness(self, **kwargs) -> "_BarchartOverallMissingness":
         """Create a bar chart showing total present vs missing cell counts across the dataset."""
         from missingfcup.plots._barchart_overall_missingness import _BarchartOverallMissingness
 
         return _BarchartOverallMissingness(data=self, **kwargs)
 
-    def heatmap(
+    def heatmap_missingness(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
@@ -105,7 +106,7 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def scatterplot(
+    def scatterplot_missingness(
         self,
         x: str,
         y: str,
@@ -114,6 +115,8 @@ class _MissingDataPlotMixin:
         axis_padding: float = 0.1,
         missingness_color_column: Optional[str] = None,
         missing_jitter: float = 0.5,
+        xaxis_range: Optional[list] = None,
+        yaxis_range: Optional[list] = None,
         **kwargs,
     ) -> "_ScatterPlot":
         """Create a scatter plot that keeps missing values visible via axis offsets."""
@@ -127,6 +130,8 @@ class _MissingDataPlotMixin:
             axis_padding=axis_padding,
             missingness_color_column=missingness_color_column,
             missing_jitter=missing_jitter,
+            xaxis_range=xaxis_range,
+            yaxis_range=yaxis_range,
             **kwargs,
         )
 
@@ -190,7 +195,7 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def parallel_coordinates(
+    def parallel_coordinates_missingness(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
@@ -246,14 +251,14 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def missing_missing_heatmap(
+    def heatmap_correlation_missing_missing(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 0,  # 0 = show all variables by default
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         order_by_missingness: bool = True,
         order: Literal["desc", "asc"] = "desc",
         value_round: int = 1,
@@ -282,14 +287,14 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def present_present_heatmap(
+    def heatmap_correlation_present_present(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 0,  # 0 = show all variables by default
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         order_by_missingness: bool = True,
         order: Literal["desc", "asc"] = "desc",
         value_round: int = 1,
@@ -318,19 +323,19 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def present_missing_heatmap(
+    def heatmap_correlation_present_missing(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 0,  # 0 = show all variables by default
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         order_by_missingness: bool = True,
         order: Literal["desc", "asc"] = "desc",
         value_round: int = 1,
         show_colorbar: bool = True,
-        show_upper_triangle: bool = False,  # full matrix by default for this asymmetric mode
+        show_upper_triangle: bool = False,
         nan_color: str = "#c7c7c7",
         **kwargs,
     ) -> "_HeatmapCorrelation":
@@ -354,7 +359,7 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def column_missing_rate_heatmap(
+    def heatmap_missing_rate(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
@@ -389,12 +394,12 @@ class _MissingDataPlotMixin:
             **kwargs,
         )
 
-    def dendrogram(
+    def dendrogram_missingness(
         self,
         *,
         selected_columns: Optional[List[str]] = None,
         max_columns: int = 30,
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         linkage_method: Literal[
             "single", "complete", "average", "weighted", "centroid", "median", "ward"
         ] = "average",
@@ -415,6 +420,63 @@ class _MissingDataPlotMixin:
             use_abs_correlation=use_abs_correlation,
             line_width=line_width,
             line_color=line_color,
+            **kwargs,
+        )
+
+    def heatmap_value_missingness_correlation(
+        self,
+        *,
+        selected_columns: Optional[List[str]] = None,
+        selected_value_columns: Optional[List[str]] = None,
+        selected_missing_columns: Optional[List[str]] = None,
+        colorscale: str = "RdBu",
+        show_values: bool = True,
+        max_columns: int = 0,
+        drop_constant_columns: bool = True,
+        order_by_missingness: bool = True,
+        order: Literal["desc", "asc"] = "desc",
+        value_round: int = 1,
+        show_colorbar: bool = True,
+        show_upper_triangle: bool = False,
+        nan_color: str = "#c7c7c7",
+        **kwargs,
+    ) -> "_HeatmapValueMissingness":
+        """
+        Create a heatmap of value-missingness associations.
+
+        Each cell [i, j] shows the point-biserial correlation between the observed
+        values of column i and the missingness indicator of column j. A non-zero
+        value means the distribution of i differs between rows where j is present
+        vs. missing — a key signal for MAR diagnosis.
+
+        Parameters
+        ----------
+        selected_columns : list[str], optional
+            Shorthand to restrict both axes to the same set of columns.
+        selected_value_columns : list[str], optional
+            Columns to use as value predictors (y-axis). Overrides selected_columns.
+        selected_missing_columns : list[str], optional
+            Columns whose missingness to predict (x-axis). Overrides selected_columns.
+        show_upper_triangle : bool, optional
+            If False (default), the upper triangle is hidden for square matrices.
+        """
+        from missingfcup.plots._heatmap_value_missingness import _HeatmapValueMissingness
+
+        return _HeatmapValueMissingness(
+            data=self,
+            selected_columns=selected_columns,
+            selected_value_columns=selected_value_columns,
+            selected_missing_columns=selected_missing_columns,
+            colorscale=colorscale,
+            show_values=show_values,
+            max_columns=max_columns,
+            drop_constant_columns=drop_constant_columns,
+            order_by_missingness=order_by_missingness,
+            order=order,
+            value_round=value_round,
+            show_colorbar=show_colorbar,
+            show_upper_triangle=show_upper_triangle,
+            nan_color=nan_color,
             **kwargs,
         )
 

@@ -15,17 +15,17 @@ def main():
     # ------------------------------------------------------------------
     # 1️⃣ Very easy (minimal)
     # ------------------------------------------------------------------
-    md.heatmap().show()
+    md.heatmap_missingness().show()
 
     # ------------------------------------------------------------------
     # 2️⃣-5️⃣ Simple with personalization
     # ------------------------------------------------------------------
-    md.heatmap(
+    md.heatmap_missingness(
         selected_columns=["ZIP CODE", "BOROUGH", "OFF STREET NAME"],
         title="ZIP/Borough/Off-Street",
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         selected_columns=[
             "ON STREET NAME",
             "CROSS STREET NAME",
@@ -36,7 +36,7 @@ def main():
         ygap=1,
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         selected_columns=[
             "CONTRIBUTING FACTOR VEHICLE 1",
             "CONTRIBUTING FACTOR VEHICLE 2",
@@ -46,7 +46,7 @@ def main():
         show_colorscale=True,
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         selected_columns=[
             "VEHICLE TYPE CODE 1",
             "VEHICLE TYPE CODE 2",
@@ -59,12 +59,12 @@ def main():
     # ------------------------------------------------------------------
     # 6️⃣-🔟 More complex
     # ------------------------------------------------------------------
-    md.heatmap(
+    md.heatmap_missingness(
         title="Columns Ordered by Missingness",
         order_by=[{"axis": "columns", "column": "__missing__", "ascending": False}],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Order by Numeric Column (DESC)",
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
@@ -75,7 +75,7 @@ def main():
         order_by=[{"axis": "rows", "column": "NUMBER OF PERSONS INJURED", "type": "numeric", "ascending": False}],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Order by Numeric Column (ASC)",
         selected_columns=[
             "NUMBER OF PERSONS INJURED",
@@ -86,7 +86,7 @@ def main():
         order_by=[{"axis": "rows", "column": "NUMBER OF PERSONS INJURED", "type": "numeric", "ascending": True}],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Order by Categorical (Alphabetical)",
         selected_columns=[
             "BOROUGH",
@@ -96,7 +96,7 @@ def main():
         order_by=[{"axis": "rows", "column": "BOROUGH", "type": "categorical", "ascending": True}],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Order by Categorical (Custom Order)",
         selected_columns=[
             "BOROUGH",
@@ -111,7 +111,7 @@ def main():
         }],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Order by Two Columns (Numeric + Categorical)",
         selected_columns=[
             "BOROUGH",
@@ -125,12 +125,12 @@ def main():
         ],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Rows Ordered by Missingness",
         order_by=[{"axis": "rows", "column": "__missing__", "ascending": False}],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Rows + Columns Ordered by Missingness",
         order_by=[
             {"axis": "columns", "column": "__missing__", "ascending": False},
@@ -138,7 +138,7 @@ def main():
         ],
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         title="Top Columns, Random Rows",
         order_by=[{"axis": "columns", "column": "__missing__", "ascending": False}],
         max_columns=12,
@@ -147,7 +147,7 @@ def main():
         ygap=1,
     ).show()
 
-    md.heatmap(
+    md.heatmap_missingness(
         selected_columns=[
             "ZIP CODE",
             "BOROUGH",

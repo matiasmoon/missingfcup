@@ -65,7 +65,7 @@ class _ParallelCoordinates(_Plot):
             ]
             if non_numeric:
                 raise TypeError(
-                    f"parallel_coordinates() requires numeric columns.\n"
+                    f"parallel_coordinates_missingness() requires numeric columns.\n"
                     f"Non-numeric columns found: {non_numeric}\n"
                     f"Pass only numeric columns via selected_columns=[...]"
                 )
@@ -156,10 +156,10 @@ class _ParallelCoordinates(_Plot):
                 gridcolor="rgba(150,150,150,0.4)",
                 zeroline=False,
                 range=[-0.5, m - 0.5],
-                title="",
+                title=cols[0] if cols else "",
             ),
             yaxis=dict(
-                title="",
+                title="Normalized value",
                 range=[-0.05, 1.08],
                 tickmode="array",
                 tickvals=[0, 0.25, 0.5, 0.75, 1.0],
