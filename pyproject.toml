@@ -36,8 +36,17 @@ keywords = [
     "pandas"
 ]
 
+[project.urls]
+Homepage = "https://github.com/matiasmoon/missingfcup"
+Source = "https://github.com/matiasmoon/missingfcup"
+"Bug Tracker" = "https://github.com/matiasmoon/missingfcup/issues"
+
+[project.optional-dependencies]
+examples = ["statsmodels>=0.14"]
+dev = ["pytest>=7.0", "statsmodels>=0.14"]
+
 [tool.setuptools.packages.find]
-where = ["missingfcup/src"]
+where = ["src"]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
