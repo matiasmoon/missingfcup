@@ -26,6 +26,8 @@ class _Dendrogram(_Plot):
         self,
         data: MissingData,
         selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
         max_columns: int = 30,
         drop_constant_columns: bool = True,
         linkage_method: Literal[
@@ -39,6 +41,8 @@ class _Dendrogram(_Plot):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
         self.max_columns = max_columns
         self.drop_constant_columns = drop_constant_columns
         self.linkage_method = linkage_method
@@ -53,6 +57,11 @@ class _Dendrogram(_Plot):
             ) from _SCIPY_IMPORT_ERROR
 
         missing_matrix = self.data.mask_missing
+
+        if self.ignore_high_missingness:
+            miss_rate = self.data.col_missing_rate
+            keep = [c for c in missing_matrix.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
+            missing_matrix = missing_matrix[keep]
 
         if self.selected_columns is not None:
             cols = [c for c in self.selected_columns if c in missing_matrix.columns]

@@ -18,6 +18,8 @@ class _HeatmapRate(_Plot):
         self,
         data: MissingData,
         selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
         scale: Literal["fraction", "percentage"] = "fraction",
         colorscale: str = "Reds",
         show_values: bool = True,
@@ -26,13 +28,14 @@ class _HeatmapRate(_Plot):
         order: Literal["desc", "asc"] = "desc",
         value_round: int = 2,
         show_colorbar: bool = True,
-        max_label_length: int = 48,
         max_labels_with_values: int = 20,
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
         self.scale = scale
         self.colorscale = colorscale
         self.show_values = show_values
@@ -41,7 +44,6 @@ class _HeatmapRate(_Plot):
         self.order = order
         self.value_round = value_round
         self.show_colorbar = show_colorbar
-        self.max_label_length = max_label_length
         self.max_labels_with_values = max_labels_with_values
 
     # ------------------------------------------------------------------
@@ -49,6 +51,9 @@ class _HeatmapRate(_Plot):
     # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
         rates = self.data.col_missing_rate
+
+        if self.ignore_high_missingness:
+            rates = rates[rates < self.high_missingness_threshold]
 
         if self.selected_columns is not None:
             cols = [c for c in self.selected_columns if c in rates.index]

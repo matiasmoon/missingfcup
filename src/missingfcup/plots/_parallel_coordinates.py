@@ -28,10 +28,7 @@ class _ParallelCoordinates(_Plot):
         line_opacity: float = 0.4,
         line_width: float = 1.0,
         missingness_only: bool = False,
-        # kept for backwards compatibility, not used
         normalize: bool = True,
-        impute_below_range_frac: float = 0.1,
-        show_colorbar: bool = False,
         **kwargs,
     ):
         legend_title = kwargs.pop(

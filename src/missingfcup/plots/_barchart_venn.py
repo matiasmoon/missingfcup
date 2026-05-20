@@ -19,20 +19,18 @@ class _BarchartVenn(_Plot):
         self,
         data: MissingData,
         selected_columns: Optional[List[str]] = None,
-        sort_order: Literal["desc", "asc"] = "desc",
+        order: Literal["desc", "asc"] = "desc",
         value: Literal["count", "percent"] = "count",
         show_values: bool = True,
-        max_label_length: int = 48,
         missing_color: str = "#d62728",
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
-        self.sort_order = sort_order
+        self.order = order
         self.value = value
         self.show_values = show_values
-        self.max_label_length = max_label_length
         self.missing_color = missing_color
 
     # ------------------------------------------------------------------
@@ -80,7 +78,7 @@ class _BarchartVenn(_Plot):
         labels_full = [", ".join(s) for s in subsets]
         counts = [subset_count(s) for s in subsets]
 
-        if self.sort_order == "asc":
+        if self.order == "asc":
             labels_full, counts = zip(
                 *sorted(zip(labels_full, counts), key=lambda x: x[1])
             )

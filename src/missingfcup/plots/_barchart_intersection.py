@@ -23,12 +23,11 @@ class _BarchartIntersection(_Plot):
         max_sets: int = 3,
         max_intersections: int = 20,
         min_intersection_size: int = 1,
-        sort_order: Literal["desc", "asc"] = "desc",
+        order: Literal["desc", "asc"] = "desc",
         show_values: bool = True,
         matrix_dot_size: int = 14,
         matrix_line_width: int = 4,
         excluded_dot_color: str = "#e0e0e0",
-        max_label_length: int = 28,
         highlight_columns: Optional[List[str]] = None,
         highlight_color: Optional[str] = None,
         **kwargs,
@@ -41,12 +40,11 @@ class _BarchartIntersection(_Plot):
         self.max_sets = max_sets
         self.max_intersections = max_intersections
         self.min_intersection_size = min_intersection_size
-        self.sort_order = sort_order
+        self.order = order
         self.show_values = show_values
         self.matrix_dot_size = matrix_dot_size
         self.matrix_line_width = matrix_line_width
         self.excluded_dot_color = excluded_dot_color
-        self.max_label_length = max_label_length
         self.highlight_columns = highlight_columns
         self.highlight_color = highlight_color
 
@@ -89,7 +87,7 @@ class _BarchartIntersection(_Plot):
         if counts.empty:
             raise ValueError("No missingness intersections found for selected columns.")
 
-        if self.sort_order == "asc":
+        if self.order == "asc":
             counts = counts.sort_values(ascending=True)
 
         if self.max_intersections > 0:

@@ -26,6 +26,8 @@ class _HeatmapBiserial(_Plot):
         selected_columns: Optional[List[str]] = None,
         selected_value_columns: Optional[List[str]] = None,
         selected_missing_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 0,
@@ -43,6 +45,8 @@ class _HeatmapBiserial(_Plot):
         self.selected_columns = selected_columns
         self.selected_value_columns = selected_value_columns
         self.selected_missing_columns = selected_missing_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
         self.colorscale = colorscale
         self.show_values = show_values
         self.max_columns = max_columns
@@ -60,6 +64,12 @@ class _HeatmapBiserial(_Plot):
 
     def _get_correlation_matrix(self) -> pd.DataFrame:
         corr = self.data.value_missing_corr.copy()
+
+        if self.ignore_high_missingness:
+            miss_rate = self.data.col_missing_rate
+            keep_rows = [c for c in corr.index if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
+            keep_cols = [c for c in corr.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
+            corr = corr.loc[keep_rows, keep_cols]
 
         # Resolve value (row) columns
         value_cols = self.selected_value_columns or self.selected_columns

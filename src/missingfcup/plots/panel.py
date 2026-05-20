@@ -3,7 +3,7 @@ import copy
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-from missingfcup.plots._plot import _Plot
+from missingfcup.plots._plot import _Plot, _slugify
 
 class Panel:
     """
@@ -153,13 +153,32 @@ class Panel:
 
         return fig
 
+    @property
+    def _download_filename(self) -> str:
+        if self.title and self.title != "Combined Plots":
+            return "panel-" + _slugify(self.title)
+        return "panel"
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
     def show(self):
         """Display all plots in a single interactive figure."""
-        self._create_combined_figure().show()
+        config = {"toImageButtonOptions": {"filename": self._download_filename}}
+        self._create_combined_figure().show(config=config)
 
-    def save(self, path: str):
-        """Save combined plots as a single HTML file."""
-        self._create_combined_figure().write_html(path)
+    def save(self, path: str = None):
+        """Save the panel. path is the destination file including extension (.html or .png).
+        Defaults to plots/<name>.html relative to the current directory."""
+        import os
+        if path is None:
+            path = os.path.join("plots", f"{self._download_filename}.png")
+        ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"
+        dir_ = os.path.dirname(path)
+        if dir_:
+            os.makedirs(dir_, exist_ok=True)
+        fig = self._create_combined_figure()
+        if ext == "png":
+            fig.write_image(path)
+        else:
+            fig.write_html(path)

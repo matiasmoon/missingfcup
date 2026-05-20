@@ -1,7 +1,19 @@
+import re
 from abc import ABC, abstractmethod
 from typing import Optional
 import plotly.graph_objects as go
 from missingfcup.core.missing_data import MissingData
+
+
+def _slugify(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    return text.strip("-")
+
+
+def _class_to_kebab(cls_name: str) -> str:
+    name = cls_name.lstrip("_")
+    return re.sub(r"(?<!^)(?=[A-Z])", "-", name).lower()
 
 
 class _Plot(ABC):
@@ -21,6 +33,7 @@ class _Plot(ABC):
         present_color: str = "#2ca02c",
         show_legend: bool = True,
         legend_title: Optional[str] = None,
+        max_label_length: int = 48,
     ):
         self.data = data
         self.title = title
@@ -38,6 +51,7 @@ class _Plot(ABC):
         # Legend
         self.show_legend = show_legend
         self.legend_title = legend_title
+        self.max_label_length = max_label_length
 
         self._figure: Optional[go.Figure] = None
 
@@ -65,6 +79,13 @@ class _Plot(ABC):
             font=dict(color=self.text_color) if self.text_color else None,
         )
 
+    @property
+    def _download_filename(self) -> str:
+        parts = [_class_to_kebab(self.__class__.__name__)]
+        if self.title:
+            parts.append(_slugify(self.title))
+        return "-".join(parts)
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -77,8 +98,20 @@ class _Plot(ABC):
 
     def show(self):
         """Display the figure."""
-        self.fig.show()
+        config = {"toImageButtonOptions": {"filename": self._download_filename}}
+        self.fig.show(config=config)
 
-    def save(self, path: str):
-        """Save the figure as an HTML file."""
-        self.fig.write_html(path)
+    def save(self, path: str = None):
+        """Save the figure. path is the destination file including extension (.html or .png).
+        Defaults to plots/<name>.html relative to the current directory."""
+        import os
+        if path is None:
+            path = os.path.join("plots", f"{self._download_filename}.png")
+        ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"
+        dir_ = os.path.dirname(path)
+        if dir_:
+            os.makedirs(dir_, exist_ok=True)
+        if ext == "png":
+            self.fig.write_image(path)
+        else:
+            self.fig.write_html(path)

@@ -19,6 +19,8 @@ class _HeatmapPredictive(_Plot):
         self,
         data: MissingData,
         selected_columns: Optional[List[str]] = None,
+        ignore_high_missingness: bool = True,
+        high_missingness_threshold: float = 0.9,
         colorscale: str = "RdBu",
         show_values: bool = True,
         max_columns: int = 0,  # 0 = show all variables by default
@@ -34,6 +36,8 @@ class _HeatmapPredictive(_Plot):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
+        self.ignore_high_missingness = ignore_high_missingness
+        self.high_missingness_threshold = high_missingness_threshold
         self.colorscale = colorscale
         self.show_values = show_values
         self.max_columns = max_columns
@@ -50,6 +54,11 @@ class _HeatmapPredictive(_Plot):
     # ------------------------------------------------------------------
     def _get_correlation_matrix(self) -> pd.DataFrame:
         corr = self.data.present_missing_corr
+
+        if self.ignore_high_missingness:
+            miss_rate = self.data.col_missing_rate
+            keep = [c for c in corr.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
+            corr = corr.loc[keep, keep]
 
         if self.selected_columns is not None:
             cols = [c for c in self.selected_columns if c in corr.columns]

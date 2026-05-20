@@ -29,7 +29,6 @@ class _Heatmap(_Plot):
         group_by_mode: Literal["binary", "missing"] = "binary",
         xgap: int = 1,
         ygap: int = 0,
-        max_label_length: int = 48,
         order_by_border_color: str = "#1f77b4",
         order_by_border_width: int = 5,
         **kwargs,
@@ -50,7 +49,6 @@ class _Heatmap(_Plot):
         self.group_by_mode = group_by_mode
         self.xgap = xgap
         self.ygap = ygap
-        self.max_label_length = max_label_length
         self.order_by_border_color = order_by_border_color
         self.order_by_border_width = order_by_border_width
 
