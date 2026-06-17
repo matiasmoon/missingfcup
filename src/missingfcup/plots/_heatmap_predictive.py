@@ -31,6 +31,7 @@ class _HeatmapPredictive(_Plot):
         show_colorbar: bool = True,
         show_upper_triangle: bool = False,
         nan_color: str = "#c7c7c7",
+        text_font_size: int = 12,
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
@@ -48,6 +49,7 @@ class _HeatmapPredictive(_Plot):
         self.show_colorbar = show_colorbar
         self.show_upper_triangle = show_upper_triangle
         self.nan_color = nan_color
+        self.text_font_size = text_font_size
 
     # ------------------------------------------------------------------
     # Correlation matrix preparation
@@ -172,6 +174,7 @@ class _HeatmapPredictive(_Plot):
                 zmid=0,
                 text=text if effective_show_values else None,
                 texttemplate="%{text}" if effective_show_values else None,
+                textfont=dict(size=self.text_font_size) if effective_show_values else None,
                 showscale=self.show_colorbar,
                 colorbar=self._colorbar_config() if self.show_colorbar else None,
                 hovertemplate=self._hover_template(),

@@ -167,9 +167,10 @@ class Panel:
         config = {"toImageButtonOptions": {"filename": self._download_filename}}
         self._create_combined_figure().show(config=config)
 
-    def save(self, path: str = None):
+    def save(self, path: str = None, save_individual: bool = False):
         """Save the panel. path is the destination file including extension (.html or .png).
-        Defaults to plots/<name>.html relative to the current directory."""
+        Defaults to plots/<name>.png relative to the current directory.
+        If save_individual=True, each sub-plot is also saved as a separate PNG in the same directory."""
         import os
         if path is None:
             path = os.path.join("plots", f"{self._download_filename}.png")
@@ -182,3 +183,9 @@ class Panel:
             fig.write_image(path)
         else:
             fig.write_html(path)
+        if save_individual:
+            out_dir = dir_ or "plots"
+            os.makedirs(out_dir, exist_ok=True)
+            for plot in self.plots:
+                individual_path = os.path.join(out_dir, f"{plot._download_filename}.png")
+                plot.save(individual_path)

@@ -31,6 +31,7 @@ class _Heatmap(_Plot):
         ygap: int = 0,
         order_by_border_color: str = "#1f77b4",
         order_by_border_width: int = 5,
+        order_by_y_labels: bool = True,
         **kwargs,
     ):
         super().__init__(
@@ -51,6 +52,7 @@ class _Heatmap(_Plot):
         self.ygap = ygap
         self.order_by_border_color = order_by_border_color
         self.order_by_border_width = order_by_border_width
+        self.order_by_y_labels = order_by_y_labels
 
     # ------------------------------------------------------------------
     # Data preparation
@@ -226,7 +228,25 @@ class _Heatmap(_Plot):
             x_labels = adjusted
 
         x_positions = list(range(len(df.columns)))
-        y_labels = [str(i) for i in df.index]
+
+        if self.order_by and self.order_by_y_labels:
+            _primary_col = next(
+                (spec.get("column") for spec in self.order_by
+                 if spec.get("column") not in (None, "__missing__", "__column__", "__row__")),
+                None,
+            )
+            if _primary_col and _primary_col in df.columns:
+                def _fmt(v):
+                    if pd.isna(v):
+                        return "NaN"
+                    if isinstance(v, float) and v == int(v):
+                        return str(int(v))
+                    return str(v)
+                y_labels = [_fmt(v) for v in df[_primary_col].values]
+            else:
+                y_labels = [str(i) for i in df.index]
+        else:
+            y_labels = [str(i) for i in df.index]
 
         fig = go.Figure(
             data=go.Heatmap(
