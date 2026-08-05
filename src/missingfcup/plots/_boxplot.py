@@ -1,8 +1,10 @@
-import plotly.graph_objects as go
 from typing import Literal
 
-from missingfcup.plots._plot import _Plot
+import pandas as pd
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _Boxplot(_Plot):
@@ -50,7 +52,6 @@ class _Boxplot(_Plot):
     # ------------------------------------------------------------------
 
     def _validate(self) -> None:
-        import pandas as pd
         df = self.data.data
         if self.x not in df.columns:
             raise ValueError(f"Column '{self.x}' not found in DataFrame.")
@@ -81,17 +82,21 @@ class _Boxplot(_Plot):
 
         fig = go.Figure()
 
-        fig.add_trace(TraceClass(
-            y=present_vals,
-            name=f"{self.color_by}: present",
-            marker_color=self.present_color,
-        ))
+        fig.add_trace(
+            TraceClass(
+                y=present_vals,
+                name=f"{self.color_by}: present",
+                marker_color=self.present_color,
+            )
+        )
 
-        fig.add_trace(TraceClass(
-            y=missing_vals,
-            name=f"{self.color_by}: missing",
-            marker_color=self.missing_color,
-        ))
+        fig.add_trace(
+            TraceClass(
+                y=missing_vals,
+                name=f"{self.color_by}: missing",
+                marker_color=self.missing_color,
+            )
+        )
 
         fig.update_xaxes(tickangle=-45)
         fig.update_yaxes(title_text=self.x)

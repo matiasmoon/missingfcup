@@ -1,10 +1,11 @@
+from typing import List, Optional
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from typing import Optional, List
 
-from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _ParallelCoordinates(_Plot):
@@ -60,10 +61,7 @@ class _ParallelCoordinates(_Plot):
             df = df.iloc[:, : self.max_columns]
 
         if not self.missingness_only:
-            non_numeric = [
-                col for col in df.columns
-                if not pd.api.types.is_numeric_dtype(df[col])
-            ]
+            non_numeric = [col for col in df.columns if not pd.api.types.is_numeric_dtype(df[col])]
             if non_numeric:
                 raise TypeError(
                     f"parallel_coordinates() requires numeric columns.\n"
@@ -74,8 +72,7 @@ class _ParallelCoordinates(_Plot):
         if self.missingness_color_column is not None:
             if self.missingness_color_column not in self.data.data.columns:
                 raise ValueError(
-                    f"missingness_color_column "
-                    f"'{self.missingness_color_column}' not found"
+                    f"missingness_color_column '{self.missingness_color_column}' not found"
                 )
 
         return df
@@ -97,20 +94,18 @@ class _ParallelCoordinates(_Plot):
                 result[col] = (df[col] - min_val) / span
         return result
 
-    def _build_lines(
-        self, norm_df: pd.DataFrame, mask: pd.Series
-    ):
+    def _build_lines(self, norm_df: pd.DataFrame, mask: pd.Series):
         """
         Return flattened (x, y) arrays for all rows selected by `mask`.
         Rows are separated by NaN; missing column values also become NaN (gap).
         """
-        rows = norm_df[mask].values.astype(float)   # (n, m)
+        rows = norm_df[mask].values.astype(float)  # (n, m)
         n, m = rows.shape
         x_positions = np.arange(m, dtype=float)
 
         # Append NaN column as row terminator
-        y_padded = np.hstack([rows, np.full((n, 1), np.nan)])          # (n, m+1)
-        x_padded = np.tile(np.append(x_positions, np.nan), n)           # n*(m+1)
+        y_padded = np.hstack([rows, np.full((n, 1), np.nan)])  # (n, m+1)
+        x_padded = np.tile(np.append(x_positions, np.nan), n)  # n*(m+1)
         return x_padded, y_padded.flatten()
 
     def _build_figure(self) -> go.Figure:
@@ -124,7 +119,7 @@ class _ParallelCoordinates(_Plot):
             target_missing = self.data.mask_missing[self.missingness_color_column]
             groups = [
                 (~target_missing, "!NA", self.present_color),
-                (target_missing,  "NA",  self.missing_color),
+                (target_missing, "NA", self.missing_color),
             ]
         else:
             groups = [

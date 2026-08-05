@@ -1,10 +1,11 @@
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
 
-from missingfcup.plots._plot import _Plot
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _AssociationHeatmap(_Plot):

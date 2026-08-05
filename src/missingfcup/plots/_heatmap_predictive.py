@@ -39,7 +39,5 @@ class _HeatmapPredictive(_AssociationHeatmap):
 
     def _hover_template(self) -> str:
         return (
-            "<b>Present</b>: %{y}<br>"
-            "<b>Missing</b>: %{x}<br>"
-            "Correlation: %{z:.2f}<extra></extra>"
+            "<b>Present</b>: %{y}<br><b>Missing</b>: %{x}<br>Correlation: %{z:.2f}<extra></extra>"
         )

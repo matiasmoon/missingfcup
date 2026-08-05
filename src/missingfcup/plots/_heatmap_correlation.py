@@ -24,9 +24,7 @@ class _HeatmapCorrelation(_AssociationHeatmap):
             max_columns=self.max_columns,
         )
         if len(cols) < 2:
-            raise ValueError(
-                "Not enough columns with varying missingness to compute correlation."
-            )
+            raise ValueError("Not enough columns with varying missingness to compute correlation.")
         with np.errstate(invalid="ignore", divide="ignore"):
             corr = self.data.mask_missing[cols].corr()
         return corr.loc[cols, cols]
@@ -44,7 +42,4 @@ class _HeatmapCorrelation(_AssociationHeatmap):
         )
 
     def _hover_template(self) -> str:
-        return (
-            "<b>%{y}</b> vs <b>%{x}</b><br>"
-            "Missingness correlation: %{z:.2f}<extra></extra>"
-        )
+        return "<b>%{y}</b> vs <b>%{x}</b><br>Missingness correlation: %{z:.2f}<extra></extra>"

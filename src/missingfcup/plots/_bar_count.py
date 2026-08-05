@@ -1,9 +1,10 @@
-import plotly.graph_objects as go
 from typing import Literal
-import pandas as pd
 
-from missingfcup.plots._bar_base import _BarBase
+import pandas as pd
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._bar_base import _BarBase
 
 
 class _BarCount(_BarBase):
@@ -34,7 +35,6 @@ class _BarCount(_BarBase):
         missing_values = self._compute_missing_values(df)
         present_values = self._compute_present_values(df)
         columns = missing_values.index.tolist()
-        value_title = "Count"
 
         fig = go.Figure()
 

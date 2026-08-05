@@ -1,12 +1,15 @@
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
-from typing import Optional, Literal, List, Dict
 import warnings
+from typing import Dict, List, Literal, Optional
 
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+
+from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._color import hex_to_rgba
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
-from missingfcup.core.missing_data import MissingData
+
 
 class _Matrix(_Plot):
     """
@@ -129,6 +132,7 @@ class _Matrix(_Plot):
                             f"Order spec expects numeric column '{col}', "
                             "but data is non-numeric. Using default ascending/descending.",
                             UserWarning,
+                            stacklevel=2,
                         )
                     df = df.sort_values(
                         col,
@@ -142,6 +146,7 @@ class _Matrix(_Plot):
                             f"Order spec expects categorical column '{col}', "
                             "but data is numeric. Using default ascending/descending.",
                             UserWarning,
+                            stacklevel=2,
                         )
                         df = df.sort_values(
                             col,
@@ -152,9 +157,7 @@ class _Matrix(_Plot):
                     else:
                         category_order = spec.get("category_order")
                         if category_order is not None:
-                            cat = pd.Categorical(
-                                df[col], categories=category_order, ordered=True
-                            )
+                            cat = pd.Categorical(df[col], categories=category_order, ordered=True)
                             df = df.assign(**{col: cat}).sort_values(
                                 col,
                                 kind="stable",
@@ -200,17 +203,22 @@ class _Matrix(_Plot):
 
         if self.order_by and self.order_by_y_labels:
             _primary_col = next(
-                (spec.get("column") for spec in self.order_by
-                 if spec.get("column") not in (None, "__missing__", "__column__", "__row__")),
+                (
+                    spec.get("column")
+                    for spec in self.order_by
+                    if spec.get("column") not in (None, "__missing__", "__column__", "__row__")
+                ),
                 None,
             )
             if _primary_col and _primary_col in df.columns:
+
                 def _fmt(v):
                     if pd.isna(v):
                         return "NaN"
                     if isinstance(v, float) and v == int(v):
                         return str(int(v))
                     return str(v)
+
                 y_labels = [_fmt(v) for v in df[_primary_col].values]
             else:
                 y_labels = [str(i) for i in df.index]
@@ -241,18 +249,18 @@ class _Matrix(_Plot):
                     "<b>Status</b>: %{text}<br>"
                     "<b>Value</b>: %{customdata[1]}<extra></extra>"
                 ),
-                text=[
-                    ["Present" if v == 1 else "Missing" for v in row]
-                    for row in z
-                ],
-                customdata=np.stack([
-                    np.array([[col for col in df.columns] for _ in range(len(df))]),
-                    np.where(
-                        mask.to_numpy(),
-                        "NaN",
-                        df.to_numpy(dtype=object),
-                    ),
-                ], axis=-1),
+                text=[["Present" if v == 1 else "Missing" for v in row] for row in z],
+                customdata=np.stack(
+                    [
+                        np.array([[col for col in df.columns] for _ in range(len(df))]),
+                        np.where(
+                            mask.to_numpy(),
+                            "NaN",
+                            df.to_numpy(dtype=object),
+                        ),
+                    ],
+                    axis=-1,
+                ),
             )
         )
 
@@ -274,19 +282,6 @@ class _Matrix(_Plot):
                 order_cols.append(col)
 
         if order_cols:
-            def hex_to_rgba(color: str, alpha: float) -> str:
-                if not isinstance(color, str) or not color.startswith("#"):
-                    return f"rgba(0,0,0,{alpha})"
-                hex_value = color.lstrip("#")
-                if len(hex_value) == 3:
-                    hex_value = "".join(ch * 2 for ch in hex_value)
-                if len(hex_value) != 6:
-                    return f"rgba(0,0,0,{alpha})"
-                r = int(hex_value[0:2], 16)
-                g = int(hex_value[2:4], 16)
-                b = int(hex_value[4:6], 16)
-                return f"rgba({r},{g},{b},{alpha})"
-
             shapes = []
             col_positions = {col: idx for idx, col in enumerate(df.columns)}
             for col in order_cols:

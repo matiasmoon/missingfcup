@@ -44,8 +44,8 @@ Source = "https://github.com/matiasmoon/missingfcup"
 "Bug Tracker" = "https://github.com/matiasmoon/missingfcup/issues"
 
 [project.optional-dependencies]
-# Tests need only pytest; the core deps cover the rest.
-dev = ["pytest>=7.0"]
+# Tests need pytest; ruff lints and formats. The core deps cover the rest.
+dev = ["pytest>=7.0", "ruff>=0.6"]
 # Extra packages the example notebooks use (not needed to run the library).
 examples = ["seaborn>=0.12", "mdatagen", "scikit-learn>=1.3", "ucimlrepo", "statsmodels>=0.14"]
 
@@ -58,3 +58,15 @@ missingfcup = ["py.typed"]
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# E/W pycodestyle, F pyflakes, I import sorting, B bugbear. UP (pyupgrade) is left
+# off on purpose: it rewrites typing to 3.10+ syntax, but the package supports 3.9.
+select = ["E", "W", "F", "I", "B"]
+# Line length is enforced by the formatter, which leaves long strings/comments alone.
+ignore = ["E501"]

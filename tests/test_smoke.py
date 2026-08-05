@@ -1,21 +1,24 @@
 """Smoke tests: verify the package imports and core API is reachable."""
-import pytest
+
 import pandas as pd
+import pytest
 
 from missingfcup import MissingData, Panel
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture
 def simple_df():
-    return pd.DataFrame({
-        "a": [1.0, None, 3.0, 4.0, None],
-        "b": [None, 2.0, 3.0, None, 5.0],
-        "c": [1.0, 2.0, 3.0, 4.0, 5.0],
-    })
+    return pd.DataFrame(
+        {
+            "a": [1.0, None, 3.0, 4.0, None],
+            "b": [None, 2.0, 3.0, None, 5.0],
+            "c": [1.0, 2.0, 3.0, 4.0, 5.0],
+        }
+    )
 
 
 @pytest.fixture
@@ -26,6 +29,7 @@ def md(simple_df):
 # ---------------------------------------------------------------------------
 # Construction
 # ---------------------------------------------------------------------------
+
 
 def test_construction(simple_df):
     assert MissingData(simple_df) is not None
@@ -45,6 +49,7 @@ def test_rejects_empty_dataframe():
 # Core masks
 # ---------------------------------------------------------------------------
 
+
 def test_mask_missing_shape(md, simple_df):
     assert md.mask_missing.shape == simple_df.shape
 
@@ -56,6 +61,7 @@ def test_mask_present_is_inverse(md):
 # ---------------------------------------------------------------------------
 # Column metrics
 # ---------------------------------------------------------------------------
+
 
 def test_col_missing_rate_range(md):
     assert (md.col_missing_rate >= 0).all()
@@ -76,6 +82,7 @@ def test_cols_complete_has_no_missing(md):
 # Row metrics
 # ---------------------------------------------------------------------------
 
+
 def test_row_missing_rate_range(md):
     assert (md.row_missing_rate >= 0).all()
     assert (md.row_missing_rate <= 1).all()
@@ -95,6 +102,7 @@ def test_rows_above_threshold_invalid(md):
 # Dataset totals
 # ---------------------------------------------------------------------------
 
+
 def test_total_missing_rate_range(md):
     assert 0.0 <= md.total_missing_rate <= 1.0
 
@@ -102,6 +110,7 @@ def test_total_missing_rate_range(md):
 # ---------------------------------------------------------------------------
 # Pattern analysis
 # ---------------------------------------------------------------------------
+
 
 def test_missing_pattern_in_rows_length(md, simple_df):
     assert len(md.missing_pattern_in_rows) == len(simple_df)
@@ -115,6 +124,7 @@ def test_missing_pattern_counts_max_patterns(md):
 # ---------------------------------------------------------------------------
 # Plots: verify they construct without error
 # ---------------------------------------------------------------------------
+
 
 def test_matrix_builds(md):
     assert md.matrix().fig is not None
@@ -211,6 +221,7 @@ def test_upset_builds(md):
 # Flat function facade
 # ---------------------------------------------------------------------------
 
+
 def test_flat_facade_matches_plot_methods():
     import missingfcup as mf
     from missingfcup.core.mixins._plots import _MissingDataPlotMixin
@@ -242,6 +253,7 @@ def test_ipython_display_delegates_to_show(md):
 # Panel
 # ---------------------------------------------------------------------------
 
+
 def test_panel_builds(md):
     panel = Panel([md.matrix(), md.bar()])
     assert panel._create_combined_figure() is not None
@@ -262,7 +274,9 @@ def test_panel_empty_raises():
 # Version
 # ---------------------------------------------------------------------------
 
+
 def test_version_exposed():
     import missingfcup
+
     assert hasattr(missingfcup, "__version__")
     assert isinstance(missingfcup.__version__, str)

@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, List, Dict, Literal
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional
 
 if TYPE_CHECKING:
-    from missingfcup.plots._bar_count import _BarCount
-    from missingfcup.plots._totals import _Totals
-    from missingfcup.plots._bar_rate import _BarRate
-    from missingfcup.plots._matrix import _Matrix
-    from missingfcup.plots._scatterplot import _Scatterplot
-    from missingfcup.plots._venn import _Venn
-    from missingfcup.plots._upset import _Upset
-    from missingfcup.plots._parallel_coordinates import _ParallelCoordinates
-    from missingfcup.plots._heatmap_correlation import _HeatmapCorrelation
-    from missingfcup.plots._heatmap_predictive import _HeatmapPredictive
-    from missingfcup.plots._rate import _Rate
-    from missingfcup.plots._dendrogram import _Dendrogram
     from missingfcup.plots._boxplot import _Boxplot
+    from missingfcup.plots._dendrogram import _Dendrogram
     from missingfcup.plots._density import _Density
-    from missingfcup.plots._heatmap_biserial import _HeatmapBiserial
+    from missingfcup.plots._matrix import _Matrix
+    from missingfcup.plots._parallel_coordinates import _ParallelCoordinates
     from missingfcup.plots._plot import _Plot
+    from missingfcup.plots._rate import _Rate
+    from missingfcup.plots._scatterplot import _Scatterplot
+    from missingfcup.plots._totals import _Totals
+    from missingfcup.plots._upset import _Upset
+    from missingfcup.plots._venn import _Venn
 
 
 class _MissingDataPlotMixin:
@@ -302,8 +297,7 @@ class _MissingDataPlotMixin:
         """
         if kind not in ("correlation", "predictive", "biserial"):
             raise ValueError(
-                "kind must be 'correlation', 'predictive', or 'biserial', "
-                f"got {kind!r}"
+                f"kind must be 'correlation', 'predictive', or 'biserial', got {kind!r}"
             )
         if kind != "biserial" and (
             selected_value_columns is not None or selected_missing_columns is not None

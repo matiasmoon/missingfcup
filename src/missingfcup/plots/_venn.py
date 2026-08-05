@@ -1,9 +1,10 @@
-import plotly.graph_objects as go
-import pandas as pd
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
 
-from missingfcup.plots._plot import _Plot
+import pandas as pd
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _Venn(_Plot):
@@ -22,7 +23,6 @@ class _Venn(_Plot):
         order: Literal["desc", "asc"] = "desc",
         value: Literal["count", "percent"] = "count",
         show_values: bool = True,
-        missing_color: str = "#d62728",
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
@@ -31,7 +31,6 @@ class _Venn(_Plot):
         self.order = order
         self.value = value
         self.show_values = show_values
-        self.missing_color = missing_color
 
     # ------------------------------------------------------------------
     # Figure construction
@@ -41,13 +40,13 @@ class _Venn(_Plot):
         if self.selected_columns:
             cols = [c for c in self.selected_columns if c in df.columns]
             if len(cols) < 3:
-                raise ValueError("barchart_venn requires at least 3 valid columns.")
+                raise ValueError("venn requires at least 3 valid columns.")
             return cols[:3]
 
         missing_rate = self.data.col_missing_rate
         cols = missing_rate.sort_values(ascending=False).head(3).index.tolist()
         if len(cols) < 3:
-            raise ValueError("barchart_venn requires at least 3 columns.")
+            raise ValueError("venn requires at least 3 columns.")
         return cols
 
     def _build_figure(self) -> go.Figure:
@@ -79,9 +78,7 @@ class _Venn(_Plot):
         counts = [subset_count(s) for s in subsets]
 
         if self.order == "asc":
-            labels_full, counts = zip(
-                *sorted(zip(labels_full, counts), key=lambda x: x[1])
-            )
+            labels_full, counts = zip(*sorted(zip(labels_full, counts), key=lambda x: x[1]))
             labels_full = list(labels_full)
             counts = list(counts)
 
@@ -89,17 +86,15 @@ class _Venn(_Plot):
         if self.value == "percent":
             values = [c / max(total_rows, 1) * 100.0 for c in counts]
             y_title = "Percent of rows"
-            text_values = [
-                f"{v:.1f}%" if v > 0 else ""
-                for v in values
-            ] if self.show_values else None
+            text_values = (
+                [f"{v:.1f}%" if v > 0 else "" for v in values] if self.show_values else None
+            )
         else:
             values = counts
             y_title = "Number of rows"
-            text_values = [
-                f"{int(v)}" if v > 0 else ""
-                for v in values
-            ] if self.show_values else None
+            text_values = (
+                [f"{int(v)}" if v > 0 else "" for v in values] if self.show_values else None
+            )
 
         labels_display = self._truncate_labels(labels_full)
 

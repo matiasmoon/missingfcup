@@ -1,7 +1,6 @@
 import plotly.graph_objects as go
 
 from missingfcup.plots._plot import _Plot
-from missingfcup.core.missing_data import MissingData
 
 
 class _Totals(_Plot):
@@ -12,15 +11,8 @@ class _Totals(_Plot):
     Useful when you just want the overall number.
     """
 
-    def __init__(
-        self,
-        data: MissingData,
-        **kwargs,
-    ):
-        super().__init__(data=data, **kwargs)
-
     def _build_figure(self) -> go.Figure:
-        total_cells   = self.data.data.size
+        total_cells = self.data.data.size
         total_missing = self.data.total_missing_count
         total_present = total_cells - total_missing
 
@@ -39,9 +31,7 @@ class _Totals(_Plot):
             ],
             textposition="outside",
             hovertemplate=(
-                "<b>%{x}</b><br>"
-                "Count: %{y:,}<br>"
-                "Percent: %{customdata:.2f}%<extra></extra>"
+                "<b>%{x}</b><br>Count: %{y:,}<br>Percent: %{customdata:.2f}%<extra></extra>"
             ),
             customdata=[present_pct, missing_pct],
         )

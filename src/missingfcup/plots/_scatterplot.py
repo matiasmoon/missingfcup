@@ -1,10 +1,12 @@
-import plotly.graph_objects as go
-import pandas as pd
-import numpy as np
 from typing import Optional
 
-from missingfcup.plots._plot import _Plot
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
+
 
 class _Scatterplot(_Plot):
     """
@@ -61,13 +63,12 @@ class _Scatterplot(_Plot):
             and self.missingness_color_column not in df.columns
         ):
             raise ValueError(
-                "missingness_color_column "
-                f"'{self.missingness_color_column}' not found"
+                f"missingness_color_column '{self.missingness_color_column}' not found"
             )
         return df
 
     def _validate_numeric(self, df: pd.DataFrame) -> None:
-        for col, axis in [(self.x, "x"), (self.y, "y")]:
+        for col in (self.x, self.y):
             if not pd.api.types.is_numeric_dtype(df[col]):
                 raise TypeError(
                     f"scatterplot() requires numeric columns.\n"
@@ -246,8 +247,16 @@ class _Scatterplot(_Plot):
                 span = max_val - min_val or 1.0
                 return [min_val - span * self.axis_padding, max_val + span * 0.15]
 
-            fig.update_xaxes(range=self.xaxis_range or padded_range(x, x_offset), title_text=self.x, **self._axis_tick_settings(x))
-            fig.update_yaxes(range=self.yaxis_range or padded_range(y, y_offset), title_text=self.y, **self._axis_tick_settings(y))
+            fig.update_xaxes(
+                range=self.xaxis_range or padded_range(x, x_offset),
+                title_text=self.x,
+                **self._axis_tick_settings(x),
+            )
+            fig.update_yaxes(
+                range=self.yaxis_range or padded_range(y, y_offset),
+                title_text=self.y,
+                **self._axis_tick_settings(y),
+            )
             self._apply_base_layout(fig)
             return fig
 
@@ -283,9 +292,7 @@ class _Scatterplot(_Plot):
                     symbol="x",
                     opacity=self.point_opacity,
                 ),
-                customdata=self._make_customdata(
-                    x_display, y_display, x_only_missing
-                ),
+                customdata=self._make_customdata(x_display, y_display, x_only_missing),
                 hovertemplate=(
                     f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
                     f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
@@ -305,9 +312,7 @@ class _Scatterplot(_Plot):
                     symbol="triangle-down",
                     opacity=self.point_opacity,
                 ),
-                customdata=self._make_customdata(
-                    x_display, y_display, y_only_missing
-                ),
+                customdata=self._make_customdata(x_display, y_display, y_only_missing),
                 hovertemplate=(
                     f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
                     f"<b>{self.y}</b>: %{{customdata[1]}}<br>"

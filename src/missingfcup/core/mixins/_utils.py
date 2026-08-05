@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import math
 from functools import cached_property
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype

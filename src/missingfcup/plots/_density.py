@@ -1,25 +1,10 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from typing import Optional
 
-from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
-
-
-def _hex_to_rgba(color: str, alpha: float) -> str:
-    """Convert a hex or rgb color string to an rgba string."""
-    if color.startswith("rgba("):
-        return color
-    if color.startswith("rgb("):
-        return color.replace("rgb(", "rgba(").replace(")", f", {alpha})")
-    color = color.lstrip("#")
-    if len(color) == 3:
-        color = "".join(c * 2 for c in color)
-    r = int(color[0:2], 16)
-    g = int(color[2:4], 16)
-    b = int(color[4:6], 16)
-    return f"rgba({r},{g},{b},{alpha})"
+from missingfcup.plots._color import hex_to_rgba
+from missingfcup.plots._plot import _Plot
 
 
 class _Density(_Plot):
@@ -57,6 +42,7 @@ class _Density(_Plot):
         """KDE over x_range using scipy if available, else histogram interpolation."""
         try:
             from scipy.stats import gaussian_kde
+
             return gaussian_kde(values)(x_range)
         except ImportError:
             counts, edges = np.histogram(values, bins=50, density=True)
@@ -87,7 +73,7 @@ class _Density(_Plot):
 
         groups = [
             (~target_missing, "!NA", self.present_color),
-            (target_missing,  "NA",  self.missing_color),
+            (target_missing, "NA", self.missing_color),
         ]
 
         fig = go.Figure()
@@ -103,7 +89,7 @@ class _Density(_Plot):
                 mode="lines",
                 name=name,
                 fill="tozeroy",
-                fillcolor=_hex_to_rgba(color, self.fill_opacity),
+                fillcolor=hex_to_rgba(color, self.fill_opacity),
                 line=dict(color="black", width=1.5),
             )
 

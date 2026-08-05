@@ -1,13 +1,15 @@
+from typing import List, Literal, Optional
+
 import numpy as np
 import plotly.graph_objects as go
-from typing import Optional, List, Literal
 
+from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
-from missingfcup.core.missing_data import MissingData
 
 try:
-    from scipy.cluster.hierarchy import linkage, dendrogram as _scipy_dendrogram
+    from scipy.cluster.hierarchy import dendrogram as _scipy_dendrogram
+    from scipy.cluster.hierarchy import linkage
     from scipy.spatial.distance import squareform
 except Exception as exc:  # pragma: no cover; runtime optional dependency
     linkage = None
@@ -69,7 +71,7 @@ class _Dendrogram(_Plot):
 
         if missing_matrix.shape[1] < 2:
             raise ValueError(
-                "Not enough columns with varying missingness to compute _scipy_dendrogram."
+                "Not enough columns with varying missingness to compute the dendrogram."
             )
 
         with np.errstate(invalid="ignore", divide="ignore"):

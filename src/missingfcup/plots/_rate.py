@@ -1,10 +1,11 @@
-import plotly.graph_objects as go
-import pandas as pd
-from typing import Optional, List, Literal
+from typing import List, Literal, Optional
 
+import plotly.graph_objects as go
+
+from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
-from missingfcup.core.missing_data import MissingData
+
 
 class _Rate(_Plot):
     """
@@ -84,8 +85,9 @@ class _Rate(_Plot):
             [
                 (
                     name,
-                    f"{val:.{self.value_round}f}%" if self.scale == "percentage"
-                    else f"{val:.{self.value_round}f}"
+                    f"{val:.{self.value_round}f}%"
+                    if self.scale == "percentage"
+                    else f"{val:.{self.value_round}f}",
                 )
                 for name, val in zip(values.index, values)
             ]

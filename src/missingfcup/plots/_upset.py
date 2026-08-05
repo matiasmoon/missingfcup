@@ -1,9 +1,10 @@
+from typing import List, Literal, Optional
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from typing import Optional, List, Literal
 
-from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _Upset(_Plot):
@@ -59,14 +60,10 @@ class _Upset(_Plot):
                 raise ValueError("No selected columns found in the DataFrame.")
         else:
             missing_rate = self.data.col_missing_rate
-            cols = (
-                missing_rate.loc[lambda s: s > 0]
-                .sort_values(ascending=False)
-                .index.tolist()
-            )
+            cols = missing_rate.loc[lambda s: s > 0].sort_values(ascending=False).index.tolist()
 
         if not cols:
-            raise ValueError("barchart_intersection requires at least one column with missing values.")
+            raise ValueError("upset requires at least one column with missing values.")
 
         if self.max_sets > 0:
             cols = cols[: self.max_sets]
@@ -138,8 +135,7 @@ class _Upset(_Plot):
             text=[str(v) if self.show_values else None for v in intersection_values],
             textposition="outside" if self.show_values else None,
             hovertemplate=(
-                "<b>Missing columns</b>: %{customdata}<br>"
-                "<b>Rows</b>: %{y}<extra></extra>"
+                "<b>Missing columns</b>: %{customdata}<br><b>Rows</b>: %{y}<extra></extra>"
             ),
             customdata=intersection_labels,
             row=1,
@@ -164,10 +160,7 @@ class _Upset(_Plot):
             textposition="outside" if self.show_values else None,
             textfont=dict(size=16),
             cliponaxis=False,
-            hovertemplate=(
-                "<b>Column</b>: %{y}<br>"
-                "<b>Missing</b>: %{x}<extra></extra>"
-            ),
+            hovertemplate=("<b>Column</b>: %{y}<br><b>Missing</b>: %{x}<extra></extra>"),
             row=2,
             col=1,
         )

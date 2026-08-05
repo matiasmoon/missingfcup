@@ -11,19 +11,22 @@ Fixture (5 rows x 3 cols), missing marked with `.`:
      ---  ---  ---
  miss 2    2    0      total missing = 4 / 15 cells
 """
-import pytest
+
 import pandas as pd
+import pytest
 
 from missingfcup import MissingData
 
 
 @pytest.fixture
 def df():
-    return pd.DataFrame({
-        "a": [1.0, None, 3.0, 4.0, None],
-        "b": [None, 2.0, 3.0, None, 5.0],
-        "c": [1.0, 2.0, 3.0, 4.0, 5.0],
-    })
+    return pd.DataFrame(
+        {
+            "a": [1.0, None, 3.0, 4.0, None],
+            "b": [None, 2.0, 3.0, None, 5.0],
+            "c": [1.0, 2.0, 3.0, 4.0, 5.0],
+        }
+    )
 
 
 @pytest.fixture
@@ -34,6 +37,7 @@ def md(df):
 # ---------------------------------------------------------------------------
 # Column metrics
 # ---------------------------------------------------------------------------
+
 
 def test_col_missing_count(md):
     assert md.col_missing_count["a"] == 2
@@ -70,6 +74,7 @@ def test_cols_complete(md):
 # Row metrics
 # ---------------------------------------------------------------------------
 
+
 def test_row_missing_count(md):
     assert list(md.row_missing_count) == [1, 1, 0, 1, 1]
 
@@ -81,6 +86,7 @@ def test_rows_complete(md):
 # ---------------------------------------------------------------------------
 # Dataset totals
 # ---------------------------------------------------------------------------
+
 
 def test_total_missing_count(md):
     assert md.total_missing_count == 4
@@ -94,11 +100,12 @@ def test_total_missing_rate(md):
 # Masks
 # ---------------------------------------------------------------------------
 
+
 def test_mask_missing_values(md):
     assert md.mask_missing.shape == (5, 3)
-    assert md.mask_missing.loc[0, "a"] == False   # noqa: E712 present
-    assert md.mask_missing.loc[0, "b"] == True    # noqa: E712 missing
-    assert not md.mask_missing.loc[2].any()       # row 2 fully present
+    assert md.mask_missing.loc[0, "a"] == False  # noqa: E712 present
+    assert md.mask_missing.loc[0, "b"] == True  # noqa: E712 missing
+    assert not md.mask_missing.loc[2].any()  # row 2 fully present
 
 
 def test_mask_present_is_inverse(md):
@@ -108,6 +115,7 @@ def test_mask_present_is_inverse(md):
 # ---------------------------------------------------------------------------
 # Plot output correctness (not just "it built")
 # ---------------------------------------------------------------------------
+
 
 def test_totals_plot_data(md):
     """totals() must encode 11 present vs 4 missing cells."""
@@ -120,6 +128,7 @@ def test_totals_plot_data(md):
 # ---------------------------------------------------------------------------
 # Input validation
 # ---------------------------------------------------------------------------
+
 
 def test_rejects_duplicate_columns():
     df = pd.DataFrame([[1, None, 3], [None, 2, 3]], columns=["a", "a", "b"])

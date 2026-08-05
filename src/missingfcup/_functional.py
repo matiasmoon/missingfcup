@@ -15,6 +15,7 @@ into a ``Panel``.
 The functions here are kept in step with the plot methods on ``MissingData`` by a guard
 test (see ``tests/test_smoke.py``).
 """
+
 from __future__ import annotations
 
 import pandas as pd

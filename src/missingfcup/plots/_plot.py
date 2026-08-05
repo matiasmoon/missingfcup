@@ -1,7 +1,9 @@
 import re
 from abc import ABC, abstractmethod
 from typing import Optional
+
 import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
 
 
@@ -155,6 +157,7 @@ class _Plot(ABC):
         """Save the figure to ``path``, where the extension picks the format (.html or .png).
         Defaults to plots/<name>.png relative to the current directory."""
         import os
+
         if path is None:
             path = os.path.join("plots", f"{self._download_filename}.png")
         ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"

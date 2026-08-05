@@ -1,9 +1,11 @@
-from typing import List, Optional
 import copy
-from plotly.subplots import make_subplots
+from typing import List, Optional
+
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from missingfcup.plots._plot import _Plot, _slugify
+
 
 class Panel:
     """
@@ -65,7 +67,9 @@ class Panel:
     # ------------------------------------------------------------------
     def _create_combined_figure(self) -> go.Figure:
         if not self.plots:
-            raise ValueError("Panel has no plots. Use add() or pass plots= to add plots before showing.")
+            raise ValueError(
+                "Panel has no plots. Use add() or pass plots= to add plots before showing."
+            )
         if len(self.plots) > self.max_plots:
             raise ValueError(f"Panel supports at most {self.max_plots} plots")
 
@@ -172,6 +176,7 @@ class Panel:
         Defaults to plots/<name>.png relative to the current directory.
         If save_individual=True, each sub-plot is also saved as a separate PNG in the same directory."""
         import os
+
         if path is None:
             path = os.path.join("plots", f"{self._download_filename}.png")
         ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"

@@ -1,10 +1,10 @@
 import pandas as pd
 
-from missingfcup.core.mixins._core import _MissingDataCoreMixin
 from missingfcup.core.mixins._columns import _MissingDataColumnsMixin
+from missingfcup.core.mixins._core import _MissingDataCoreMixin
+from missingfcup.core.mixins._plots import _MissingDataPlotMixin
 from missingfcup.core.mixins._rows import _MissingDataRowsMixin
 from missingfcup.core.mixins._utils import _MissingDataUtilsMixin
-from missingfcup.core.mixins._plots import _MissingDataPlotMixin
 
 
 class MissingData(
@@ -65,7 +65,6 @@ class MissingData(
         if df.columns.duplicated().any():
             dupes = df.columns[df.columns.duplicated()].unique().tolist()
             raise ValueError(
-                f"DataFrame has duplicate column names: {dupes}. "
-                "Column names must be unique."
+                f"DataFrame has duplicate column names: {dupes}. Column names must be unique."
             )
         self.data = df

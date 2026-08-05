@@ -1,8 +1,9 @@
-import pandas as pd
-from typing import Optional, List
+from typing import List, Optional
 
-from missingfcup.plots._association_heatmap import _AssociationHeatmap
+import pandas as pd
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._association_heatmap import _AssociationHeatmap
 
 
 class _HeatmapBiserial(_AssociationHeatmap):
@@ -34,8 +35,12 @@ class _HeatmapBiserial(_AssociationHeatmap):
 
         if self.ignore_high_missingness:
             miss_rate = self.data.col_missing_rate
-            keep_rows = [c for c in corr.index if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
-            keep_cols = [c for c in corr.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
+            keep_rows = [
+                c for c in corr.index if miss_rate.get(c, 0.0) < self.high_missingness_threshold
+            ]
+            keep_cols = [
+                c for c in corr.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold
+            ]
             corr = corr.loc[keep_rows, keep_cols]
 
         # Resolve value (row) columns
@@ -61,9 +66,9 @@ class _HeatmapBiserial(_AssociationHeatmap):
 
             # Drop missing columns with no variance in missingness (always present/always missing)
             no_variance_cols = [
-                c for c in corr.columns
-                if c in self.data.mask_missing.columns
-                and self.data.mask_missing[c].nunique() <= 1
+                c
+                for c in corr.columns
+                if c in self.data.mask_missing.columns and self.data.mask_missing[c].nunique() <= 1
             ]
             corr = corr.drop(columns=no_variance_cols, errors="ignore")
 

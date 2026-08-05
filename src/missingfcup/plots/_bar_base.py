@@ -1,9 +1,10 @@
+from typing import Dict, List, Literal, Optional
+
 import numpy as np
 import pandas as pd
-from typing import Optional, Literal, List, Dict
 
-from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._plot import _Plot
 
 
 class _BarBase(_Plot):
@@ -103,9 +104,7 @@ class _BarBase(_Plot):
 
             if col == "__missing__":
                 missing_counts = self.data.col_missing_count.loc[df.columns]
-                ordered_cols = missing_counts.sort_values(
-                    ascending=ascending, kind="stable"
-                ).index
+                ordered_cols = missing_counts.sort_values(ascending=ascending, kind="stable").index
                 df = df.loc[:, ordered_cols]
                 continue
 
@@ -117,9 +116,7 @@ class _BarBase(_Plot):
             if spec["type"] == "numeric":
                 df = df.sort_values(col, ascending=ascending, kind="stable")
             elif spec["type"] == "categorical":
-                cat = pd.Categorical(
-                    df[col], categories=spec["category_order"], ordered=True
-                )
+                cat = pd.Categorical(df[col], categories=spec["category_order"], ordered=True)
                 df = df.assign(**{col: cat}).sort_values(col, kind="stable")
 
         return df

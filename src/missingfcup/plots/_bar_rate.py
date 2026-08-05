@@ -1,8 +1,9 @@
-import plotly.graph_objects as go
 from typing import Literal
 
-from missingfcup.plots._bar_base import _BarBase
+import plotly.graph_objects as go
+
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._bar_base import _BarBase
 
 
 class _BarRate(_BarBase):

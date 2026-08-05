@@ -5,7 +5,8 @@ columns to draw using the same options: drop the near-empty ones, keep an explic
 selection, drop columns with no variation in missingness, order by missing rate, and cap
 the count. That logic used to live copied in each plot. It now lives here once.
 """
-from typing import List, Optional, Literal
+
+from typing import List, Literal, Optional
 
 
 def select_columns(
@@ -48,9 +49,7 @@ def select_columns(
 
     if order_by_missingness:
         keep = set(cols)
-        ordered = miss_rate[miss_rate.index.isin(keep)].sort_values(
-            ascending=order == "asc"
-        )
+        ordered = miss_rate[miss_rate.index.isin(keep)].sort_values(ascending=order == "asc")
         cols = list(ordered.index)
 
     if max_columns and max_columns > 0 and len(cols) > max_columns:
