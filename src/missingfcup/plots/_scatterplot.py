@@ -21,6 +21,7 @@ class _Scatterplot(_Plot):
         data: MissingData,
         x: str,
         y: str,
+        *,
         point_size: int = 8,
         axis_padding: float = 0.1,
         missingness_color_column: Optional[str] = None,

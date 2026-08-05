@@ -26,6 +26,7 @@ class _AssociationHeatmap(_Plot):
     def __init__(
         self,
         data: MissingData,
+        *,
         selected_columns: Optional[List[str]] = None,
         ignore_high_missingness: bool = True,
         high_missingness_threshold: float = 0.9,

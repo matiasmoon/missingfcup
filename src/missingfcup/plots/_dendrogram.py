@@ -28,11 +28,12 @@ class _Dendrogram(_Plot):
     def __init__(
         self,
         data: MissingData,
+        *,
         selected_columns: Optional[List[str]] = None,
         ignore_high_missingness: bool = True,
         high_missingness_threshold: float = 0.9,
         max_columns: int = 30,
-        drop_constant_columns: bool = True,
+        drop_constant_columns: bool = False,
         linkage_method: Literal[
             "single", "complete", "average", "weighted", "centroid", "median", "ward"
         ] = "average",

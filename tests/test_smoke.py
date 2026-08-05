@@ -232,6 +232,48 @@ def test_flat_facade_matches_plot_methods():
         assert hasattr(mf, name), f"{name} not exported from missingfcup"
 
 
+def test_factory_and_class_defaults_agree():
+    """A public factory method must not declare a default that disagrees with the
+    plot class it builds. Guards the two surfaces against silently drifting apart."""
+    import inspect
+
+    from missingfcup.core.mixins._plots import _MissingDataPlotMixin
+    from missingfcup.plots._boxplot import _Boxplot
+    from missingfcup.plots._dendrogram import _Dendrogram
+    from missingfcup.plots._density import _Density
+    from missingfcup.plots._matrix import _Matrix
+    from missingfcup.plots._parallel_coordinates import _ParallelCoordinates
+    from missingfcup.plots._rate import _Rate
+    from missingfcup.plots._scatterplot import _Scatterplot
+    from missingfcup.plots._upset import _Upset
+    from missingfcup.plots._venn import _Venn
+
+    # Only the single-class factories; bar() and heatmap() dispatch across classes.
+    factory_to_class = {
+        "matrix": _Matrix,
+        "rate": _Rate,
+        "dendrogram": _Dendrogram,
+        "scatterplot": _Scatterplot,
+        "upset": _Upset,
+        "venn": _Venn,
+        "parallel_coordinates": _ParallelCoordinates,
+        "boxplot": _Boxplot,
+        "density": _Density,
+    }
+    empty = inspect.Parameter.empty
+    for name, cls in factory_to_class.items():
+        fparams = inspect.signature(getattr(_MissingDataPlotMixin, name)).parameters
+        cparams = inspect.signature(cls.__init__).parameters
+        for pname, fp in fparams.items():
+            if pname in ("self", "kwargs") or fp.default is empty:
+                continue
+            if pname in cparams and cparams[pname].default is not empty:
+                assert fp.default == cparams[pname].default, (
+                    f"{name}(): default for '{pname}' ({fp.default!r}) disagrees "
+                    f"with {cls.__name__} ({cparams[pname].default!r})"
+                )
+
+
 def test_flat_functions_build(simple_df):
     import missingfcup as mf
 

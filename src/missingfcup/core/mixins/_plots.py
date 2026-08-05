@@ -93,6 +93,7 @@ class _MissingDataPlotMixin:
         ygap: int = 0,
         order_by_border_color: str = "#1f77b4",
         order_by_border_width: int = 2,
+        order_by_y_labels: bool = True,
         **kwargs,
     ) -> "_Matrix":
         """Create an interactive binary missingness matrix (nullity matrix)."""
@@ -111,6 +112,7 @@ class _MissingDataPlotMixin:
             ygap=ygap,
             order_by_border_color=order_by_border_color,
             order_by_border_width=order_by_border_width,
+            order_by_y_labels=order_by_y_labels,
             **kwargs,
         )
 
@@ -122,7 +124,10 @@ class _MissingDataPlotMixin:
         point_size: int = 8,
         axis_padding: float = 0.1,
         missingness_color_column: Optional[str] = None,
+        point_opacity: float = 0.7,
+        jitter: float = 0.02,
         missing_jitter: float = 0.5,
+        jitter_seed: int = 42,
         xaxis_range: Optional[list] = None,
         yaxis_range: Optional[list] = None,
         **kwargs,
@@ -137,7 +142,10 @@ class _MissingDataPlotMixin:
             point_size=point_size,
             axis_padding=axis_padding,
             missingness_color_column=missingness_color_column,
+            point_opacity=point_opacity,
+            jitter=jitter,
             missing_jitter=missing_jitter,
+            jitter_seed=jitter_seed,
             xaxis_range=xaxis_range,
             yaxis_range=yaxis_range,
             **kwargs,

@@ -19,6 +19,7 @@ class _Venn(_Plot):
     def __init__(
         self,
         data: MissingData,
+        *,
         selected_columns: Optional[List[str]] = None,
         order: Literal["desc", "asc"] = "desc",
         value: Literal["count", "percent"] = "count",

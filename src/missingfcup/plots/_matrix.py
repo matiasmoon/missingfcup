@@ -34,7 +34,7 @@ class _Matrix(_Plot):
         xgap: int = 1,
         ygap: int = 0,
         order_by_border_color: str = "#1f77b4",
-        order_by_border_width: int = 5,
+        order_by_border_width: int = 2,
         order_by_y_labels: bool = True,
         **kwargs,
     ):

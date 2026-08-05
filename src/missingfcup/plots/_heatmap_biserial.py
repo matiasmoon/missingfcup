@@ -22,6 +22,7 @@ class _HeatmapBiserial(_AssociationHeatmap):
     def __init__(
         self,
         data: MissingData,
+        *,
         selected_value_columns: Optional[List[str]] = None,
         selected_missing_columns: Optional[List[str]] = None,
         **kwargs,
