@@ -1,10 +1,11 @@
 import copy
+import os
 from typing import List, Optional
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from missingfcup.plots._plot import _Plot, _slugify
+from missingfcup.plots._plot import _Plot, _slugify, _write_figure
 
 
 class Panel:
@@ -175,21 +176,10 @@ class Panel:
         """Save the panel. path is the destination file including extension (.html or .png).
         Defaults to plots/<name>.png relative to the current directory.
         If save_individual=True, each sub-plot is also saved as a separate PNG in the same directory."""
-        import os
-
-        if path is None:
-            path = os.path.join("plots", f"{self._download_filename}.png")
-        ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"
-        dir_ = os.path.dirname(path)
-        if dir_:
-            os.makedirs(dir_, exist_ok=True)
         fig = self._create_combined_figure()
-        if ext == "png":
-            fig.write_image(path)
-        else:
-            fig.write_html(path)
+        written = _write_figure(fig, path, self._download_filename)
         if save_individual:
-            out_dir = dir_ or "plots"
+            out_dir = os.path.dirname(written) or "plots"
             os.makedirs(out_dir, exist_ok=True)
             for plot in self.plots:
                 individual_path = os.path.join(out_dir, f"{plot._download_filename}.png")

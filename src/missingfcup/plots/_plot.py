@@ -1,3 +1,4 @@
+import os
 import re
 from abc import ABC, abstractmethod
 from typing import Optional
@@ -5,6 +6,25 @@ from typing import Optional
 import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
+
+
+def _write_figure(fig: go.Figure, path: Optional[str], default_name: str) -> str:
+    """Write ``fig`` to ``path``; the extension picks the format (``.png`` or ``.html``).
+
+    ``path=None`` defaults to ``plots/<default_name>.png``. Returns the path written,
+    so callers (Plot and Panel) share one place for this file-writing logic.
+    """
+    if path is None:
+        path = os.path.join("plots", f"{default_name}.png")
+    ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"
+    dir_ = os.path.dirname(path)
+    if dir_:
+        os.makedirs(dir_, exist_ok=True)
+    if ext == "png":
+        fig.write_image(path)
+    else:
+        fig.write_html(path)
+    return path
 
 
 def _slugify(text: str) -> str:
@@ -156,15 +176,4 @@ class _Plot(ABC):
     def save(self, path: str = None):
         """Save the figure to ``path``, where the extension picks the format (.html or .png).
         Defaults to plots/<name>.png relative to the current directory."""
-        import os
-
-        if path is None:
-            path = os.path.join("plots", f"{self._download_filename}.png")
-        ext = os.path.splitext(path)[1].lstrip(".").lower() or "html"
-        dir_ = os.path.dirname(path)
-        if dir_:
-            os.makedirs(dir_, exist_ok=True)
-        if ext == "png":
-            self.fig.write_image(path)
-        else:
-            self.fig.write_html(path)
+        _write_figure(self.fig, path, self._download_filename)
