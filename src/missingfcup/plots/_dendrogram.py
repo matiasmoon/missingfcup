@@ -3,6 +3,7 @@ import plotly.graph_objects as go
 from typing import Optional, List, Literal
 
 from missingfcup.plots._plot import _Plot
+from missingfcup.plots._selection import select_columns
 from missingfcup.core.missing_data import MissingData
 
 try:
@@ -56,29 +57,15 @@ class _Dendrogram(_Plot):
                 "Dendrogram requires scipy. Install it with: pip install scipy"
             ) from _SCIPY_IMPORT_ERROR
 
-        missing_matrix = self.data.mask_missing
-
-        if self.ignore_high_missingness:
-            miss_rate = self.data.col_missing_rate
-            keep = [c for c in missing_matrix.columns if miss_rate.get(c, 0.0) < self.high_missingness_threshold]
-            missing_matrix = missing_matrix[keep]
-
-        if self.selected_columns is not None:
-            cols = [c for c in self.selected_columns if c in missing_matrix.columns]
-            if not cols:
-                raise ValueError("No selected_columns found in DataFrame.")
-            missing_matrix = missing_matrix[cols]
-
-        if self.drop_constant_columns:
-            constant_cols = [
-                c for c in missing_matrix.columns
-                if missing_matrix[c].nunique() <= 1
-            ]
-            if constant_cols:
-                missing_matrix = missing_matrix.drop(columns=constant_cols)
-
-        if self.max_columns > 0 and missing_matrix.shape[1] > self.max_columns:
-            missing_matrix = missing_matrix.iloc[:, : self.max_columns]
+        cols = select_columns(
+            self.data,
+            self.selected_columns,
+            ignore_high_missingness=self.ignore_high_missingness,
+            high_missingness_threshold=self.high_missingness_threshold,
+            drop_constant=self.drop_constant_columns,
+            max_columns=self.max_columns,
+        )
+        missing_matrix = self.data.mask_missing[cols]
 
         if missing_matrix.shape[1] < 2:
             raise ValueError(

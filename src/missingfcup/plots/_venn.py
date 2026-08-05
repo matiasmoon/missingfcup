@@ -6,7 +6,7 @@ from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
 
 
-class _BarchartVenn(_Plot):
+class _Venn(_Plot):
     """
     Bar chart of the 7 exclusive missingness subsets for 3 columns.
 
@@ -101,32 +101,7 @@ class _BarchartVenn(_Plot):
                 for v in values
             ] if self.show_values else None
 
-        def resolved_max_label_length() -> int:
-            if self.max_label_length > 0:
-                return self.max_label_length
-            return max(16, int(self.width / 12))
-
-        max_len = resolved_max_label_length()
-
-        def truncate_label(label: str) -> str:
-            if max_len <= 0 or len(label) <= max_len:
-                return label
-            return label[: max_len - 1] + "…"
-
-        labels_display = [truncate_label(l) for l in labels_full]
-
-        if len(set(labels_display)) < len(labels_display):
-            counts_seen = {}
-            adjusted = []
-            for label in labels_display:
-                counts_seen[label] = counts_seen.get(label, 0) + 1
-                idx = counts_seen[label]
-                suffix = " ..."
-                base = label
-                if max_len > len(suffix):
-                    base = label[: max_len - len(suffix)]
-                adjusted.append(base + suffix + (" " * (idx - 1)))
-            labels_display = adjusted
+        labels_display = self._truncate_labels(labels_full)
 
         fig = go.Figure()
         fig.add_bar(

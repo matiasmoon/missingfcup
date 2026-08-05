@@ -71,8 +71,8 @@ class _MissingDataRowsMixin:
         ----------
         threshold : float
             Value in [0, 1]. For example:
-            * 0.2 → rows missing more than 20% of their values
-            * 0.5 → rows missing more than half their values
+            * 0.2: rows missing more than 20% of their values
+            * 0.5: rows missing more than half their values
         """
         if not 0 <= threshold <= 1:
             raise ValueError("threshold must be between 0 and 1")
@@ -94,8 +94,8 @@ class _MissingDataRowsMixin:
 
         Examples
         --------
-        DataFrame with index [0, 1, 2] → ['0', '1', '2']
-        DataFrame with index ['A', 'B'] → ['A', 'B']
+        DataFrame with index [0, 1, 2] becomes ['0', '1', '2']
+        DataFrame with index ['A', 'B'] becomes ['A', 'B']
         """
         idx = self.data.index if index is None else index
         return [str(i) for i in idx]

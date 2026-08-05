@@ -5,11 +5,12 @@ from typing import Optional, Literal, List, Dict
 import warnings
 
 from missingfcup.plots._plot import _Plot
+from missingfcup.plots._selection import select_columns
 from missingfcup.core.missing_data import MissingData
 
-class _Heatmap(_Plot):
+class _Matrix(_Plot):
     """
-    Interactive missingness heatmap.
+    Interactive binary missingness matrix (nullity matrix).
 
     Rows = observations
     Columns = variables
@@ -58,21 +59,14 @@ class _Heatmap(_Plot):
     # Data preparation
     # ------------------------------------------------------------------
     def _prepare_df(self) -> pd.DataFrame:
-        df = self.data.data.copy()
-
-        if self.ignore_high_missingness:
-            missing_rate = self.data.col_missing_rate.loc[df.columns]
-            keep = missing_rate < self.high_missingness_threshold
-            df = df.loc[:, keep]
-
-        if self.selected_columns:
-            cols = [c for c in self.selected_columns if c in df.columns]
-            if not cols:
-                raise ValueError("No selected_columns found in DataFrame.")
-            df = df[cols]
-
-        if self.max_columns > 0 and df.shape[1] > self.max_columns:
-            df = df.iloc[:, : self.max_columns]
+        cols = select_columns(
+            self.data,
+            self.selected_columns or None,
+            ignore_high_missingness=self.ignore_high_missingness,
+            high_missingness_threshold=self.high_missingness_threshold,
+            max_columns=self.max_columns,
+        )
+        df = self.data.data[cols].copy()
 
         if self.order_by:
             df = self._apply_ordering(df)
@@ -200,32 +194,7 @@ class _Heatmap(_Plot):
             ]
             colorbar_ticks = ["Present", "Missing"]
 
-        def resolved_max_label_length() -> int:
-            if self.max_label_length > 0:
-                return self.max_label_length
-            return max(16, int(self.width / 12))
-
-        max_len = resolved_max_label_length()
-
-        def truncate_label(label: str) -> str:
-            if max_len <= 0 or len(label) <= max_len:
-                return label
-            return label[: max_len - 1] + "…"
-
-        x_labels = [truncate_label(c) for c in df.columns.tolist()]
-
-        if len(set(x_labels)) < len(x_labels):
-            counts_seen = {}
-            adjusted = []
-            for label in x_labels:
-                counts_seen[label] = counts_seen.get(label, 0) + 1
-                idx = counts_seen[label]
-                suffix = " ..."
-                base = label
-                if max_len > len(suffix):
-                    base = label[: max_len - len(suffix)]
-                adjusted.append(base + suffix + (" " * (idx - 1)))
-            x_labels = adjusted
+        x_labels = self._truncate_labels(df.columns.tolist())
 
         x_positions = list(range(len(df.columns)))
 

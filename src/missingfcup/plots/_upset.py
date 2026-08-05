@@ -6,7 +6,7 @@ from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
 
 
-class _BarchartIntersection(_Plot):
+class _Upset(_Plot):
     """
     Bar chart of missingness intersections across columns.
 
@@ -108,32 +108,9 @@ class _BarchartIntersection(_Plot):
 
         cols = [c for c in set_labels_full if c in cols]
 
-        def resolved_max_label_length() -> int:
-            if self.max_label_length > 0:
-                return self.max_label_length
-            return max(12, int(self.width / 20))
-
-        max_len = resolved_max_label_length()
-
-        def truncate_label(label: str) -> str:
-            if max_len <= 0 or len(label) <= max_len:
-                return label
-            return label[: max_len - 3] + "..."
-
-        set_labels_display = [truncate_label(l) for l in set_labels_full]
-
-        if len(set(set_labels_display)) < len(set_labels_display):
-            counts_seen = {}
-            adjusted = []
-            for label in set_labels_display:
-                counts_seen[label] = counts_seen.get(label, 0) + 1
-                idx = counts_seen[label]
-                suffix = " ..."
-                base = label
-                if max_len > len(suffix):
-                    base = label[: max_len - len(suffix)]
-                adjusted.append(base + suffix + (" " * (idx - 1)))
-            set_labels_display = adjusted
+        set_labels_display = self._truncate_labels(
+            set_labels_full, min_len=12, width_divisor=20, ellipsis="..."
+        )
 
         label_map = dict(zip(set_labels_full, set_labels_display))
 

@@ -1,17 +1,17 @@
-import plotly.graph_objects as go
-from typing import Optional, Literal, List, Dict
-import pandas as pd
 import numpy as np
+import pandas as pd
+from typing import Optional, Literal, List, Dict
 
 from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
 
 
-class _BarchartRate(_Plot):
-    """
-    Bar chart of missing rate per column.
+class _BarBase(_Plot):
+    """Shared column picking for the per-column bar charts (count and rate).
 
-    Shows the fraction or percentage of missing values for each column.
+    Both bars select, filter and order their columns the same way. Only what they draw
+    at the end differs, so a subclass just implements ``_build_figure`` and may add its
+    own options (``value``/``show_both`` for counts, ``scale`` for rate).
     """
 
     def __init__(
@@ -27,7 +27,6 @@ class _BarchartRate(_Plot):
         order_by: Optional[List[Dict]] = None,
         orientation: Literal["vertical", "horizontal"] = "vertical",
         show_values: bool = True,
-        scale: Literal["fraction", "percentage"] = "fraction",
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
@@ -40,13 +39,11 @@ class _BarchartRate(_Plot):
         self.max_columns_by_completeness = max_columns_by_completeness
         self.max_columns = max_columns
         self.order_by = order_by
-
         self.orientation = orientation
         self.show_values = show_values
-        self.scale = scale
 
     # ------------------------------------------------------------------
-    # Data prep
+    # Data prep (shared by count and rate)
     # ------------------------------------------------------------------
     def _prepare_df(self) -> pd.DataFrame:
         df = self.data.data.copy()
@@ -126,39 +123,3 @@ class _BarchartRate(_Plot):
                 df = df.assign(**{col: cat}).sort_values(col, kind="stable")
 
         return df
-
-    def _build_figure(self) -> go.Figure:
-        df = self._prepare_df()
-        columns = df.columns.tolist()
-
-        rates = self.data.col_missing_rate.loc[columns]
-
-        if self.scale == "percentage":
-            values = rates * 100
-            y_title = "Missing (%)"
-            text_vals = [f"{v:.1f}%" for v in values]
-        else:
-            values = rates
-            y_title = "Missing rate"
-            text_vals = [f"{v:.2f}" for v in values]
-
-        fig = go.Figure()
-
-        fig.add_bar(
-            x=columns if self.orientation == "vertical" else values,
-            y=values if self.orientation == "vertical" else columns,
-            name="Missing",
-            marker_color=self.missing_color,
-            text=text_vals if self.show_values else None,
-            textposition="auto" if self.show_values else None,
-        )
-
-        first_col = columns[0] if columns else ""
-        if self.orientation == "vertical":
-            fig.update_xaxes(tickangle=-45, title_text=first_col)
-            fig.update_yaxes(title_text=y_title)
-        else:
-            fig.update_xaxes(title_text=y_title)
-            fig.update_yaxes(title_text=first_col)
-        self._apply_base_layout(fig)
-        return fig

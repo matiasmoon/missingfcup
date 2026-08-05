@@ -4,12 +4,12 @@ from missingfcup.plots._plot import _Plot
 from missingfcup.core.missing_data import MissingData
 
 
-class _BarchartTotal(_Plot):
+class _Totals(_Plot):
     """
     Simple bar chart showing the total number of present and missing cells
     across the entire dataset.
 
-    Useful as a one-glance summary of the overall data completeness.
+    Useful when you just want the overall number.
     """
 
     def __init__(

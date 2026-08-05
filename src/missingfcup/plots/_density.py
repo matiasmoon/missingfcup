@@ -31,8 +31,8 @@ class _Density(_Plot):
     * **!NA** rows where ``color_by`` is *present*
     * **NA**  rows where ``color_by`` is *missing*
 
-    If the two distributions overlap heavily → consistent with MCAR.
-    If they diverge → missingness of ``color_by`` is associated with
+    If the two distributions overlap heavily, that is consistent with MCAR.
+    If they diverge, the missingness of ``color_by`` is associated with
     the values of ``x``, suggesting MAR or MNAR.
     """
 

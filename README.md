@@ -1,13 +1,23 @@
 # missingfcup
 
-`missingfcup` is a Python toolkit to inspect, quantify, and visualize missing data with Plotly.
+`missingfcup` is a Python package for looking at missing data. You give it a pandas
+DataFrame and it gives you interactive Plotly charts and cached metrics that show where the
+gaps are and how they relate to each other.
 
-It provides:
-* A single analytics object (`MissingData`) that computes and caches missingness metrics.
-* A rich set of interactive visualizations tailored to different missingness questions.
-* Simple, consistent methods on `MissingData` that return interactive Plotly figures.
+You can call it two ways:
 
-This makes it easy to move from diagnosis (what is missing?) to communication (how do I show it?).
+* Flat functions like `mf.matrix(df)`, `mf.heatmap(df)` and `mf.bar(df)`, for a quick look.
+  If you already use missingno, these will feel familiar.
+* A `MissingData` object, which caches the metrics, exposes statistical tests, and lets you
+  combine several plots into a `Panel`.
+
+```python
+import missingfcup as mf
+
+mf.matrix(df)                 # flat: builds a MissingData for you and renders inline
+md = mf.MissingData(df)       # object: caching, metrics, tests, Panel
+md.matrix().show()
+```
 
 ## Install
 
@@ -24,7 +34,7 @@ from missingfcup import MissingData
 df = pd.read_csv("your_data.csv")
 md = MissingData(df)
 
-md.heatmap().show()
+md.matrix().show()
 ```
 
 ## Example Dataset
@@ -37,85 +47,79 @@ url = "https://raw.githubusercontent.com/ResidentMario/missingno-data/master/nyc
 df = pd.read_csv(url)
 md = MissingData(df)
 
-md.heatmap().show()
-md.barchart_count().show()
-md.heatmap_correlation().show()
+md.matrix().show()
+md.bar().show()
+md.heatmap().show()          # missingness correlation
 ```
 
 ## Visualizations
 
-All visualizations are exposed as methods on `MissingData` and return a plot object with two methods:
+All visualizations are exposed as methods on `MissingData` (and as flat functions), and
+return a plot object with two methods:
 * `.show()`: renders the interactive Plotly figure.
-* `.save(path)`: saves the figure as an HTML file.
+* `.save(path)`: saves the figure to a file. The extension picks the format, `.html` or `.png`.
 
-### Heatmap
+Most of the column-based plots take the same options: `selected_columns` to pick which
+columns to show, `ignore_high_missingness` to drop the near-empty ones, `max_columns` to cap
+how many are drawn, and ordering by missing rate.
 
-Row-by-column binary matrix of missingness (present vs. missing).
+### Matrix
+
+Row-by-column binary matrix of missingness (present vs. missing). Equivalent to `msno.matrix`.
 
 ```python
-md.heatmap().show()
+md.matrix().show()
 ```
 
-### Bar Chart: Missing Count
+### Bar Chart
 
-Counts missing (or present) values per column.
+Per-column missingness as counts (`measure="count"`, the default) or rate (`measure="rate"`).
+Equivalent to `msno.bar`.
 
 ```python
-md.barchart_count().show()
-md.barchart_count(value="present", show_both=True).show()
+md.bar().show()                                    # missing counts per column
+md.bar(value="present", show_both=True).show()     # present vs missing counts
+md.bar(measure="rate").show()                      # missing rate (fraction)
+md.bar(measure="rate", scale="percentage").show()
 ```
 
-### Bar Chart: Missing Rate
+### Totals
 
-Missing rate per column as a fraction or percentage.
+Two bars with the total present and missing cells in the whole dataset. Useful when you
+just want the overall number.
 
 ```python
-md.barchart_rate().show()
-md.barchart_rate(scale="percentage").show()
+md.totals().show()
 ```
 
-### Bar Chart: Dataset Total
+### Rate
 
-Total present vs. missing cells across the entire dataset (two bars).
+The missing rate per column, drawn as a single colored row. This stays compact when you
+have many columns, where a bar chart would get crowded.
 
 ```python
-md.barchart_total().show()
+md.rate().show()
+md.rate(scale="percentage").show()
 ```
 
-### Heatmap: Missing Rate
+### Heatmap: Association
 
-Single-row heatmap of missing rates per column.
+Association between column missingness patterns, selected via `kind`. Equivalent to
+`msno.heatmap` (which is the `"correlation"` kind).
 
-```python
-md.heatmap_rate().show()
-md.heatmap_rate(scale="percentage").show()
-```
-
-### Heatmap: Missingness Correlation
-
-Phi (Pearson) correlation between column missingness patterns. Columns that tend to
-be missing at the same time will cluster together.
-
-```python
-md.heatmap_correlation().show()
-```
-
-### Heatmap: Predictive Correlation
-
-Correlation between the *presence* of one column and the *missingness* of another.
-Useful for diagnosing MAR: does observing a value in column A predict a gap in column B?
+* `kind="correlation"` (default): Phi (Pearson) correlation between column missingness
+  patterns. Columns that tend to be missing at the same time cluster together.
+* `kind="predictive"`: correlation between the *presence* of one column and the
+  *missingness* of another. Useful for diagnosing MAR: does observing a value in column A
+  predict a gap in column B?
+* `kind="biserial"`: point-biserial correlation between column *values* and missingness
+  indicators. Reveals whether higher or lower values in one column associate with gaps in
+  another. Accepts `selected_value_columns` / `selected_missing_columns`.
 
 ```python
-md.heatmap_predictive().show()
-```
-
-### Heatmap: Biserial Correlation
-
-Point-biserial correlation between column *values* and missingness indicators.
-Reveals whether higher or lower values in one column associate with gaps in another.
-
-```python
-md.heatmap_biserial().show()
+md.heatmap().show()                     # correlation (default)
+md.heatmap(kind="predictive").show()
+md.heatmap(kind="biserial").show()
 ```
 
 ### Scatter Plot
@@ -131,11 +135,13 @@ md.scatterplot(x="age", y="fare").show()
 
 Parallel coordinates view of numeric columns, colored by the missingness status of
 a chosen column. Useful for spotting multivariate patterns associated with missing data.
+Use `max_columns` to cap the number of axes when a dataset is wide.
 
 ```python
 md.parallel_coordinates(
     selected_columns=["A", "B", "C", "D"],
     missingness_color_column="A",
+    max_columns=8,
 ).show()
 ```
 
@@ -166,20 +172,20 @@ Columns that cluster together tend to be missing in the same rows.
 md.dendrogram().show()
 ```
 
-### Bar Chart: Venn (3 columns)
+### Venn (3 columns)
 
 Counts the 7 exclusive missingness subsets for a 3-column Venn diagram.
 
 ```python
-md.barchart_venn(selected_columns=["A", "B", "C"]).show()
+md.venn(selected_columns=["A", "B", "C"]).show()
 ```
 
-### Bar Chart: Intersections (UpSet-style)
+### UpSet
 
-UpSet-style plot showing the size of every missingness intersection across columns.
+UpSet plot showing the size of every missingness intersection across columns.
 
 ```python
-md.barchart_intersection(selected_columns=["A", "B", "C", "D"]).show()
+md.upset(selected_columns=["A", "B", "C", "D"]).show()
 ```
 
 ## Panel: Combining Multiple Plots
@@ -189,9 +195,9 @@ from missingfcup import Panel
 
 panel = Panel(
     [
-        md.heatmap(title="Missingness Matrix"),
-        md.barchart_count(title="Missing Counts"),
-        md.heatmap_rate(title="Missing Rates"),
+        md.matrix(title="Missingness Matrix"),
+        md.bar(title="Missing Counts"),
+        md.rate(title="Missing Rates"),
     ],
     title="Missing Data Overview",
 )
@@ -272,15 +278,16 @@ md.rows_above_missing_threshold(0.2)  # rows missing more than 20% of values
 
 ## About Missing Data
 
-Missingness is not just "empty cells"; it shapes analysis, bias, and model performance.
-Three mechanisms are commonly distinguished:
+Missing values are not just empty cells. They can bias your results and hurt model
+performance, and the reason a value is missing matters. People usually talk about three
+mechanisms:
 
-* **MCAR** (Missing Completely At Random): gaps are unrelated to any data.
-* **MAR** (Missing At Random): gaps depend on other observed variables.
-* **MNAR** (Missing Not At Random): gaps depend on the missing values themselves.
+* **MCAR** (Missing Completely At Random): the gaps are unrelated to any data.
+* **MAR** (Missing At Random): the gaps depend on other observed variables.
+* **MNAR** (Missing Not At Random): the gaps depend on the missing values themselves.
 
-`missingfcup` exposes all relevant views through plots and cached metrics so you can
-quickly understand the structure of missing data before deciding how to handle it.
+`missingfcup` gives you the plots and metrics to see which of these you are dealing with,
+before you decide how to handle the gaps.
 
 ## License
 

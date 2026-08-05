@@ -27,16 +27,16 @@ class MissingData(
 
     Categorical variables
     ---------------------
-    Plots that operate on the **missingness structure** (i.e. which cells are NaN)
-    work transparently with any dtype, including categorical, object, and numeric:
+    Plots that only look at the missingness structure (which cells are NaN)
+    work with any dtype, including categorical, object, and numeric:
 
-        heatmap, barchart_count, barchart_rate, heatmap_rate,
-        barchart_intersection, barchart_venn, dendrogram,
-        heatmap_correlation, heatmap_predictive
+        matrix, bar, rate, totals, upset, venn, dendrogram,
+        heatmap(kind="correlation"), heatmap(kind="predictive")
 
-    Plots that render **actual data values** require numeric columns:
+    Plots that read the actual values need numeric columns:
 
-        scatterplot, parallel_coordinates, boxplot, density, heatmap_biserial
+        scatterplot, parallel_coordinates, boxplot, density,
+        heatmap(kind="biserial")
 
     Encode categorical columns before passing to these plots, e.g.::
 
@@ -62,4 +62,10 @@ class MissingData(
             raise TypeError("df must be a pandas DataFrame")
         if df.empty:
             raise ValueError("DataFrame is empty")
+        if df.columns.duplicated().any():
+            dupes = df.columns[df.columns.duplicated()].unique().tolist()
+            raise ValueError(
+                f"DataFrame has duplicate column names: {dupes}. "
+                "Column names must be unique."
+            )
         self.data = df

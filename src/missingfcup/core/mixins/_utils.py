@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from functools import cached_property
-from typing import Optional, List
+from typing import Optional, List, Literal
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
@@ -92,9 +92,9 @@ class _MissingDataUtilsMixin:
         and the binary missingness indicator of column j (1=missing, 0=present).
         Only rows where column i is observed are used (pairwise complete cases).
 
-        Positive value → higher values of i associate with j being missing.
-        Negative value → lower values of i associate with j being missing.
-        NaN → column i is non-numeric, constant, or j has no variance in missingness.
+        Positive value means higher values of i associate with j being missing.
+        Negative value means lower values of i associate with j being missing.
+        NaN means column i is non-numeric or constant, or j has no variance in missingness.
         """
         missing = self.mask_missing.astype(float)
 
@@ -307,6 +307,106 @@ class _MissingDataUtilsMixin:
                 "n_rows": x.shape[0],
                 "n_columns": x.shape[1],
                 "columns_used": used_columns,
+            }
+        )
+
+    def mann_whitney_test(
+        self,
+        x: str,
+        by: str,
+        *,
+        alternative: Literal["two-sided", "less", "greater"] = "two-sided",
+        alpha: float = 0.05,
+        use_continuity: bool = True,
+    ) -> pd.Series:
+        """
+        Mann-Whitney U test comparing the distribution of ``x`` between rows
+        where ``by`` is present and rows where ``by`` is missing.
+
+        This is the statistical counterpart to :meth:`boxplot` and :meth:`density`:
+        it answers "does the value of ``x`` differ depending on whether ``by`` is
+        observed?" with a p-value instead of a purely visual judgement.
+
+        It is a non-parametric, two-sample rank test: it makes no normality
+        assumption and only compares the stochastic ordering of the two groups,
+        which makes it broadly applicable to the skewed, non-Gaussian variables
+        common in real datasets.
+
+        Diagnostic reading:
+
+        * significant (p < alpha) -> the distribution of ``x`` depends on the
+          missingness of ``by``; consistent with MAR (or MNAR if ``x`` == ``by``'s
+          own latent value proxy). Missingness is not completely at random.
+        * not significant           -> no detectable dependence; consistent with
+          MCAR with respect to ``x`` (absence of evidence, not proof).
+
+        Parameters
+        ----------
+        x : str
+            Numeric column whose distribution is compared across the two groups.
+        by : str
+            Column whose missingness defines the two groups (present vs. missing).
+        alternative : {"two-sided", "less", "greater"}, default "two-sided"
+            Passed to ``scipy.stats.mannwhitneyu``. "less"/"greater" test whether
+            the present-group distribution is stochastically smaller/larger.
+        alpha : float, default 0.05
+            Significance level used to set the boolean ``significant`` field.
+        use_continuity : bool, default True
+            Apply the continuity correction (relevant for the normal approximation).
+
+        Returns
+        -------
+        pandas.Series
+            U statistic, p-value, alpha, significance flag, per-group sample
+            sizes and medians, and the tested column names.
+
+        Notes
+        -----
+        Only rows where ``x`` is itself observed are used, evaluated separately
+        within each ``by`` group (pairwise-complete). Requires at least one
+        observed value of ``x`` in each group.
+        """
+        from scipy.stats import mannwhitneyu
+
+        if x not in self.data.columns:
+            raise KeyError(f"Column {x!r} not found in the DataFrame.")
+        if by not in self.data.columns:
+            raise KeyError(f"Column {by!r} not found in the DataFrame.")
+
+        values = pd.to_numeric(self.data[x], errors="coerce")
+        if values.notna().sum() == 0:
+            raise ValueError(f"Column {x!r} has no usable numeric values.")
+
+        by_missing = self.mask_missing[by]
+        present_group = values[~by_missing].dropna()
+        missing_group = values[by_missing].dropna()
+
+        if len(present_group) == 0 or len(missing_group) == 0:
+            raise ValueError(
+                f"Not enough observed values of {x!r} in both groups of {by!r} "
+                f"(present={len(present_group)}, missing={len(missing_group)})."
+            )
+
+        u_stat, p_value = mannwhitneyu(
+            present_group,
+            missing_group,
+            alternative=alternative,
+            use_continuity=use_continuity,
+        )
+
+        return pd.Series(
+            {
+                "U": float(u_stat),
+                "p_value": float(p_value),
+                "alpha": alpha,
+                "significant": bool(p_value < alpha),
+                "alternative": alternative,
+                "n_present": int(len(present_group)),
+                "n_missing": int(len(missing_group)),
+                "median_present": float(present_group.median()),
+                "median_missing": float(missing_group.median()),
+                "value_column": x,
+                "missingness_column": by,
             }
         )
 

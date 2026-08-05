@@ -113,35 +113,56 @@ def test_missing_pattern_counts_max_patterns(md):
 
 
 # ---------------------------------------------------------------------------
-# Plots — verify they construct without error
+# Plots: verify they construct without error
 # ---------------------------------------------------------------------------
 
-def test_heatmap_builds(md):
-    assert md.heatmap().fig is not None
+def test_matrix_builds(md):
+    assert md.matrix().fig is not None
 
 
-def test_barchart_count_builds(md):
-    assert md.barchart_count().fig is not None
+def test_bar_count_builds(md):
+    assert md.bar().fig is not None
+    assert md.bar(measure="count").fig is not None
 
 
-def test_barchart_rate_builds(md):
-    assert md.barchart_rate().fig is not None
+def test_bar_rate_builds(md):
+    assert md.bar(measure="rate").fig is not None
 
 
-def test_barchart_total_builds(md):
-    assert md.barchart_total().fig is not None
+def test_bar_invalid_measure_raises(md):
+    with pytest.raises(ValueError):
+        md.bar(measure="nope")
 
 
-def test_heatmap_rate_builds(md):
-    assert md.heatmap_rate().fig is not None
+def test_totals_builds(md):
+    assert md.totals().fig is not None
+
+
+def test_rate_builds(md):
+    assert md.rate().fig is not None
 
 
 def test_heatmap_correlation_builds(md):
-    assert md.heatmap_correlation().fig is not None
+    assert md.heatmap().fig is not None
+    assert md.heatmap(kind="correlation").fig is not None
 
 
 def test_heatmap_predictive_builds(md):
-    assert md.heatmap_predictive().fig is not None
+    assert md.heatmap(kind="predictive").fig is not None
+
+
+def test_heatmap_biserial_builds(md):
+    assert md.heatmap(kind="biserial").fig is not None
+
+
+def test_heatmap_invalid_kind_raises(md):
+    with pytest.raises(ValueError):
+        md.heatmap(kind="nope")
+
+
+def test_heatmap_biserial_only_params_rejected(md):
+    with pytest.raises(ValueError):
+        md.heatmap(kind="correlation", selected_value_columns=["a"])
 
 
 def test_scatterplot_builds(md):
@@ -160,16 +181,61 @@ def test_parallel_coordinates_builds(md):
     assert md.parallel_coordinates(selected_columns=["a", "b", "c"]).fig is not None
 
 
+def test_parallel_coordinates_max_columns_caps_axes(md):
+    full = md.parallel_coordinates(selected_columns=["a", "b", "c"]).fig.layout.xaxis.ticktext
+    capped = md.parallel_coordinates(
+        selected_columns=["a", "b", "c"], max_columns=2
+    ).fig.layout.xaxis.ticktext
+    assert len(full) == 3
+    assert len(capped) == 2
+
+
+def test_heatmap_text_font_size_applies(md):
+    fig = md.heatmap(text_font_size=18).fig
+    assert fig.data[-1].textfont.size == 18
+
+
 def test_dendrogram_builds(md):
     assert md.dendrogram().fig is not None
 
 
-def test_barchart_venn_builds(md):
-    assert md.barchart_venn(selected_columns=["a", "b", "c"]).fig is not None
+def test_venn_builds(md):
+    assert md.venn(selected_columns=["a", "b", "c"]).fig is not None
 
 
-def test_barchart_intersection_builds(md):
-    assert md.barchart_intersection(selected_columns=["a", "b", "c"]).fig is not None
+def test_upset_builds(md):
+    assert md.upset(selected_columns=["a", "b", "c"]).fig is not None
+
+
+# ---------------------------------------------------------------------------
+# Flat function facade
+# ---------------------------------------------------------------------------
+
+def test_flat_facade_matches_plot_methods():
+    import missingfcup as mf
+    from missingfcup.core.mixins._plots import _MissingDataPlotMixin
+
+    methods = {n for n in vars(_MissingDataPlotMixin) if not n.startswith("_")}
+    assert set(mf._functional.__all__) == methods
+    for name in mf._functional.__all__:
+        assert hasattr(mf, name), f"{name} not exported from missingfcup"
+
+
+def test_flat_functions_build(simple_df):
+    import missingfcup as mf
+
+    assert mf.matrix(simple_df).fig is not None
+    assert mf.heatmap(simple_df, kind="predictive").fig is not None
+    assert mf.bar(simple_df, measure="rate").fig is not None
+    assert mf.scatterplot(simple_df, "a", "b").fig is not None
+
+
+def test_ipython_display_delegates_to_show(md):
+    plot = md.matrix()
+    called = {}
+    plot.show = lambda: called.setdefault("shown", True)
+    plot._ipython_display_()
+    assert called.get("shown") is True
 
 
 # ---------------------------------------------------------------------------
@@ -177,13 +243,13 @@ def test_barchart_intersection_builds(md):
 # ---------------------------------------------------------------------------
 
 def test_panel_builds(md):
-    panel = Panel([md.heatmap(), md.barchart_count()])
+    panel = Panel([md.matrix(), md.bar()])
     assert panel._create_combined_figure() is not None
 
 
 def test_panel_add(md):
     panel = Panel()
-    panel.add(md.heatmap()).add(md.barchart_count())
+    panel.add(md.matrix()).add(md.bar())
     assert len(panel.plots) == 2
 
 

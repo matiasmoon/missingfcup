@@ -13,7 +13,7 @@ class _ParallelCoordinates(_Plot):
 
     Columns are laid out on the x-axis. Each row is drawn as a line
     connecting its normalized values across all selected columns.
-    Lines are coloured by whether a designated column is missing (NA)
+    Lines are colored by whether a designated column is missing (NA)
     or present (!NA) in that row.
 
     Missing values in non-color columns appear as gaps in the lines.
@@ -25,10 +25,10 @@ class _ParallelCoordinates(_Plot):
         *,
         selected_columns: Optional[List[str]] = None,
         missingness_color_column: Optional[str] = None,
+        max_columns: int = 0,
         line_opacity: float = 0.4,
         line_width: float = 1.0,
         missingness_only: bool = False,
-        normalize: bool = True,
         **kwargs,
     ):
         legend_title = kwargs.pop(
@@ -37,6 +37,7 @@ class _ParallelCoordinates(_Plot):
         )
         super().__init__(data=data, legend_title=legend_title, **kwargs)
         self.selected_columns = selected_columns
+        self.max_columns = max_columns
         self.missingness_color_column = missingness_color_column
         self.line_opacity = line_opacity
         self.line_width = line_width
@@ -54,6 +55,9 @@ class _ParallelCoordinates(_Plot):
             raise ValueError(f"Columns not found: {missing_cols}")
 
         df = df[selected]
+
+        if self.max_columns and self.max_columns > 0 and df.shape[1] > self.max_columns:
+            df = df.iloc[:, : self.max_columns]
 
         if not self.missingness_only:
             non_numeric = [

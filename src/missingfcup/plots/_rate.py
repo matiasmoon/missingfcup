@@ -3,9 +3,10 @@ import pandas as pd
 from typing import Optional, List, Literal
 
 from missingfcup.plots._plot import _Plot
+from missingfcup.plots._selection import select_columns
 from missingfcup.core.missing_data import MissingData
 
-class _HeatmapRate(_Plot):
+class _Rate(_Plot):
     """
     Heatmap showing missing rate per column.
 
@@ -50,25 +51,18 @@ class _HeatmapRate(_Plot):
     # Figure construction
     # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
-        rates = self.data.col_missing_rate
-
-        if self.ignore_high_missingness:
-            rates = rates[rates < self.high_missingness_threshold]
-
-        if self.selected_columns is not None:
-            cols = [c for c in self.selected_columns if c in rates.index]
-            if not cols:
-                raise ValueError("No selected_columns found in DataFrame.")
-            rates = rates.loc[cols]
-
-        if rates.empty:
+        cols = select_columns(
+            self.data,
+            self.selected_columns,
+            ignore_high_missingness=self.ignore_high_missingness,
+            high_missingness_threshold=self.high_missingness_threshold,
+            order_by_missingness=self.order_by_missingness,
+            order=self.order,
+            max_columns=self.max_columns,
+        )
+        if not cols:
             raise ValueError("No columns available to plot")
-
-        if self.order_by_missingness:
-            rates = rates.sort_values(ascending=self.order == "asc")
-
-        if self.max_columns > 0 and len(rates) > self.max_columns:
-            rates = rates.iloc[: self.max_columns]
+        rates = self.data.col_missing_rate.loc[cols]
 
         if self.scale == "percentage":
             values = rates * 100
@@ -79,32 +73,7 @@ class _HeatmapRate(_Plot):
             label = "Missing rate"
             text = [[f"{v:.{self.value_round}f}" for v in values]]
 
-        def resolved_max_label_length() -> int:
-            if self.max_label_length > 0:
-                return self.max_label_length
-            return max(16, int(self.width / 12))
-
-        max_len = resolved_max_label_length()
-
-        def truncate_label(label: str) -> str:
-            if max_len <= 0 or len(label) <= max_len:
-                return label
-            return label[: max_len - 1] + "…"
-
-        labels_display = [truncate_label(l) for l in values.index.tolist()]
-
-        if len(set(labels_display)) < len(labels_display):
-            counts_seen = {}
-            adjusted = []
-            for lbl in labels_display:
-                counts_seen[lbl] = counts_seen.get(lbl, 0) + 1
-                idx = counts_seen[lbl]
-                suffix = " ..."
-                base = lbl
-                if max_len > len(suffix):
-                    base = lbl[: max_len - len(suffix)]
-                adjusted.append(base + suffix + (" " * (idx - 1)))
-            labels_display = adjusted
+        labels_display = self._truncate_labels(values.index.tolist())
 
         zmin = 0
         zmax = max(values.max(), 1e-6)

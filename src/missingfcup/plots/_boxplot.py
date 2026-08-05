@@ -11,9 +11,9 @@ class _Boxplot(_Plot):
     split by whether another column is missing or present.
 
     This is the primary visual tool for diagnosing MAR and MNAR:
-    * If the two distributions look different → the missingness of ``color_by``
+    * If the two distributions look different, the missingness of ``color_by``
       may be related to the observed values of ``x`` (suggests MAR or MNAR).
-    * If they look the same → no obvious relationship (consistent with MCAR).
+    * If they look the same, there is no obvious relationship (consistent with MCAR).
 
     Parameters
     ----------
@@ -28,7 +28,7 @@ class _Boxplot(_Plot):
     Example
     -------
     md.boxplot(x="fare", color_by="age")
-    → "Do passengers with missing age tend to pay different fares?"
+    answers "Do passengers with missing age tend to pay different fares?"
     """
 
     def __init__(

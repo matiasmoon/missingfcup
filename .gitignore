@@ -5,4 +5,7 @@ __pycache__
 .credentials
 .claude
 CLAUDE.md
+build/
+dist/
 notebooks/**/plots/
+examples/plots/

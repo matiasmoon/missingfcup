@@ -79,6 +79,48 @@ class _Plot(ABC):
             font=dict(color=self.text_color) if self.text_color else None,
         )
 
+    def _truncate_labels(
+        self,
+        labels: list,
+        *,
+        min_len: int = 16,
+        width_divisor: int = 12,
+        ellipsis: str = "…",
+    ) -> list:
+        """Shorten long axis labels to fit, then disambiguate any duplicates the
+        shortening created. Shared by the plots that put column names on an axis.
+
+        ``max_label_length`` overrides the width-based budget when set. ``min_len``,
+        ``width_divisor`` and ``ellipsis`` let a caller match its own layout (the
+        UpSet plot has a narrower label column, for example).
+        """
+        if self.max_label_length > 0:
+            max_len = self.max_label_length
+        else:
+            max_len = max(min_len, int(self.width / width_divisor))
+
+        def truncate(label: str) -> str:
+            if max_len <= 0 or len(label) <= max_len:
+                return label
+            return label[: max_len - len(ellipsis)] + ellipsis
+
+        out = [truncate(label) for label in labels]
+
+        if len(set(out)) < len(out):
+            counts_seen = {}
+            adjusted = []
+            for label in out:
+                counts_seen[label] = counts_seen.get(label, 0) + 1
+                idx = counts_seen[label]
+                suffix = " ..."
+                base = label
+                if max_len > len(suffix):
+                    base = label[: max_len - len(suffix)]
+                adjusted.append(base + suffix + (" " * (idx - 1)))
+            out = adjusted
+
+        return out
+
     @property
     def _download_filename(self) -> str:
         parts = [_class_to_kebab(self.__class__.__name__)]
@@ -101,9 +143,17 @@ class _Plot(ABC):
         config = {"toImageButtonOptions": {"filename": self._download_filename}}
         self.fig.show(config=config)
 
+    def _ipython_display_(self):
+        """Render inline in notebooks when the plot is the last expression.
+
+        Lets the flat facade (e.g. ``mf.matrix(df)``) auto-render like missingno
+        without a forced ``.show()`` side effect in scripts.
+        """
+        self.show()
+
     def save(self, path: str = None):
-        """Save the figure. path is the destination file including extension (.html or .png).
-        Defaults to plots/<name>.html relative to the current directory."""
+        """Save the figure to ``path``, where the extension picks the format (.html or .png).
+        Defaults to plots/<name>.png relative to the current directory."""
         import os
         if path is None:
             path = os.path.join("plots", f"{self._download_filename}.png")
