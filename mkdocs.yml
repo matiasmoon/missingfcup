@@ -1,0 +1,58 @@
+site_name: missingfcup
+site_description: Interactive Plotly visualizations and metrics for exploring missing data in pandas DataFrames
+repo_url: https://github.com/matiasmoon/missingfcup
+repo_name: matiasmoon/missingfcup
+edit_uri: ""
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+nav:
+  - Home: index.md
+  - Plots: plots.md
+  - API reference: api.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            # The docstrings in this package are numpydoc style.
+            docstring_style: numpy
+            docstring_section_style: table
+            # MissingData gets its metrics from mixins, so inherited members
+            # have to be pulled in or the reference would be nearly empty.
+            inherited_members: true
+            members_order: source
+            show_root_heading: true
+            show_root_full_path: false
+            show_source: false
+            show_signature_annotations: true
+            separate_signature: true
+            heading_level: 3
+            filters: ["!^_"]
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - toc:
+      permalink: true
