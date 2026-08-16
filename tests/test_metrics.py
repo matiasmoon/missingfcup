@@ -34,11 +34,6 @@ def md(df):
     return MissingData(df)
 
 
-# ---------------------------------------------------------------------------
-# Column metrics
-# ---------------------------------------------------------------------------
-
-
 def test_col_missing_count(md):
     assert md.col_missing_count["a"] == 2
     assert md.col_missing_count["b"] == 2
@@ -70,11 +65,6 @@ def test_cols_complete(md):
     assert set(md.cols_complete) == {"c"}
 
 
-# ---------------------------------------------------------------------------
-# Row metrics
-# ---------------------------------------------------------------------------
-
-
 def test_row_missing_count(md):
     assert list(md.row_missing_count) == [1, 1, 0, 1, 1]
 
@@ -83,22 +73,12 @@ def test_rows_complete(md):
     assert set(md.rows_complete) == {2}
 
 
-# ---------------------------------------------------------------------------
-# Dataset totals
-# ---------------------------------------------------------------------------
-
-
 def test_total_missing_count(md):
     assert md.total_missing_count == 4
 
 
 def test_total_missing_rate(md):
     assert md.total_missing_rate == pytest.approx(4 / 15)
-
-
-# ---------------------------------------------------------------------------
-# Masks
-# ---------------------------------------------------------------------------
 
 
 def test_mask_missing_values(md):
@@ -112,22 +92,12 @@ def test_mask_present_is_inverse(md):
     assert (md.mask_present == ~md.mask_missing).all().all()
 
 
-# ---------------------------------------------------------------------------
-# Plot output correctness (not just "it built")
-# ---------------------------------------------------------------------------
-
-
 def test_totals_plot_data(md):
     """totals() must encode 11 present vs 4 missing cells."""
     fig = md.totals().fig
     bar = fig.data[0]
     assert list(bar.x) == ["Present", "Missing"]
     assert tuple(bar.y) == (11, 4)
-
-
-# ---------------------------------------------------------------------------
-# Input validation
-# ---------------------------------------------------------------------------
 
 
 def test_rejects_duplicate_columns():

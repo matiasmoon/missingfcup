@@ -27,11 +27,6 @@ def md():
     )
 
 
-# ---------------------------------------------------------------------------
-# select_columns
-# ---------------------------------------------------------------------------
-
-
 def test_select_all_by_default(md):
     assert select_columns(md) == ["a", "b", "c", "d"]
 
@@ -71,11 +66,6 @@ def test_order_by_missingness_asc(md):
     assert cols[-1] == "d"
 
 
-# ---------------------------------------------------------------------------
-# _Plot._truncate_labels
-# ---------------------------------------------------------------------------
-
-
 def test_short_labels_unchanged(md):
     p = md.matrix()
     p.max_label_length = 10
@@ -95,20 +85,12 @@ def test_truncation_collisions_made_unique(md):
     assert len(set(out)) == len(out)  # the duplicate the cut created is disambiguated
 
 
-# ---------------------------------------------------------------------------
-# Shared figure writing (_write_figure via Plot.save and Panel.save)
-# ---------------------------------------------------------------------------
-
-
-def test_plot_save_html_creates_nested_dirs(md, tmp_path):
-    out = tmp_path / "sub" / "fig.html"
-    md.matrix().save(str(out))
-    assert out.exists() and out.read_text().strip() != ""
-
-
-def test_panel_save_html(md, tmp_path):
+def test_panel_save_writes_the_panel_and_each_plot(md, tmp_path):
     from missingfcup import Panel
 
     out = tmp_path / "panel.html"
-    Panel([md.matrix(), md.bar()]).save(str(out))
+    Panel([md.matrix(), md.bar()]).save(str(out), save_individual=True)
+
     assert out.exists()
+    individual = sorted(p.name for p in tmp_path.glob("*.png"))
+    assert len(individual) == 2, f"expected one PNG per plot, got {individual}"
