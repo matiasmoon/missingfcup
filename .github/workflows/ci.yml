@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to the same branch cancels the run still in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Each job runs the same Makefile target a developer runs locally, so the two cannot
+# drift apart. The commands themselves live in the Makefile, not here.
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # ruff needs nothing from the package or its dependencies, so this job does
+      # not install them.
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint and format check
+        run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install package and dev dependencies
+        run: pip install -e ".[dev]"
+
+      # kaleido 1.x does not ship a browser; the PNG export test needs one. Fetching
+      # it here keeps that test a real check rather than something skipped in CI.
+      - name: Fetch Chrome for image export
+        run: plotly_get_chrome -y
+
+      - name: Run tests
+        run: make test
+
+  minimums:
+    # The `test` job always resolves to the newest releases, so it never exercises the
+    # floors declared in pyproject.toml. This job pins each dependency to its declared
+    # minimum, which is what keeps those floors honest rather than aspirational.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: pip
+
+      - name: Install the declared minimum versions
+        run: |
+          pip install -e ".[dev]"
+          pip install --force-reinstall \
+            "numpy==1.24.*" "pandas==2.0.*" "plotly==6.1.1" \
+            "scipy==1.10.*" "kaleido==1.0.0"
+
+      - name: Show resolved versions
+        run: pip list | grep -Ei '^(numpy|pandas|plotly|scipy|kaleido) '
+
+      - name: Fetch Chrome for image export
+        run: plotly_get_chrome -y
+
+      - name: Run tests
+        run: make test
+
+  build:
+    # Builds from a clean checkout, which is what catches a package that only works
+    # locally because of a stale build/ directory.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install build tooling
+        run: pip install build twine
+
+      - name: Build and check the distributions
+        run: make build
+
+      - name: Install the built wheel and import it
+        run: |
+          pip install dist/*.whl
+          python -c "import missingfcup; print(missingfcup.__version__)"

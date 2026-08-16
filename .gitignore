@@ -1,11 +1,26 @@
+# Python bytecode and packaging artifacts
 __pycache__
 *.egg-info
+build/
+dist/
+
+# Generated documentation site (rebuilt by `make docs`)
+site/
+
+# Tool caches. Both pytest and ruff also drop a self-ignoring .gitignore inside
+# these directories, so listing them here is belt and braces, kept for clarity.
+.pytest_cache/
+.ruff_cache/
+.coverage
+
+# OS noise
 .DS_Store
+
+# Secrets and local agent config
 .env
 .credentials
 .claude
 CLAUDE.md
-build/
-dist/
+
+# Generated figures (notebooks write these; examples only show, never save)
 notebooks/**/plots/
-examples/plots/
