@@ -44,7 +44,6 @@ class _HeatmapBiserial(_AssociationHeatmap):
             ]
             corr = corr.loc[keep_rows, keep_cols]
 
-        # Resolve value (row) columns
         value_cols = self.selected_value_columns or self.selected_columns
         if value_cols is not None:
             value_cols = [c for c in value_cols if c in corr.index]
@@ -52,7 +51,6 @@ class _HeatmapBiserial(_AssociationHeatmap):
                 raise ValueError("No selected_value_columns found in DataFrame.")
             corr = corr.loc[value_cols, :]
 
-        # Resolve missing (column) columns
         missing_cols = self.selected_missing_columns or self.selected_columns
         if missing_cols is not None:
             missing_cols = [c for c in missing_cols if c in corr.columns]

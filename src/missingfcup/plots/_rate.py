@@ -49,9 +49,6 @@ class _Rate(_Plot):
         self.show_colorbar = show_colorbar
         self.max_labels_with_values = max_labels_with_values
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
         cols = select_columns(
             self.data,
@@ -127,8 +124,7 @@ class _Rate(_Plot):
         )
 
         fig.update_layout(yaxis=dict(showticklabels=False))
-        first_col = values.index[0] if len(values) > 0 else ""
-        fig.update_xaxes(tickangle=-45, title_text=first_col)
+        fig.update_xaxes(tickangle=-45, title_text="Column")
         fig.update_yaxes(title_standoff=15)
 
         self._apply_base_layout(fig)

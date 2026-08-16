@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -52,9 +52,6 @@ class _Scatterplot(_Plot):
         self.xaxis_range = xaxis_range
         self.yaxis_range = yaxis_range
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _prepare_df(self) -> pd.DataFrame:
         df = self.data.data
         if self.x not in df.columns or self.y not in df.columns:
@@ -93,6 +90,23 @@ class _Scatterplot(_Plot):
                     ticktext=[str(int(v)) for v in unique_vals],
                 )
         return {}
+
+    def _padded_range(
+        self, series: pd.Series, offset_val: float, *, upper_pad: Optional[float] = None
+    ) -> List[float]:
+        """Axis range wide enough to show both the data and the offset missing markers.
+
+        ``upper_pad`` overrides the padding above the data; the coloured variant leaves
+        extra headroom there for the legend.
+        """
+        s = series.dropna()
+        if s.empty:
+            return [offset_val - 1, offset_val + 1]
+        min_val = min(s.min(), offset_val)
+        max_val = s.max()
+        span = max_val - min_val or 1.0
+        top = span * (self.axis_padding if upper_pad is None else upper_pad)
+        return [min_val - span * self.axis_padding, max_val + top]
 
     def _compute_offset(self, series: pd.Series) -> float:
         s = series.dropna()
@@ -239,14 +253,8 @@ class _Scatterplot(_Plot):
 
             fig.update_layout(dragmode="pan")
 
-            def padded_range(series: pd.Series, offset_val: float) -> list[float]:
-                s = series.dropna()
-                if s.empty:
-                    return [offset_val - 1, offset_val + 1]
-                min_val = min(s.min(), offset_val)
-                max_val = s.max()
-                span = max_val - min_val or 1.0
-                return [min_val - span * self.axis_padding, max_val + span * 0.15]
+            def padded_range(series, offset_val):
+                return self._padded_range(series, offset_val, upper_pad=0.15)
 
             fig.update_xaxes(
                 range=self.xaxis_range or padded_range(x, x_offset),
@@ -343,20 +351,12 @@ class _Scatterplot(_Plot):
 
         fig.update_layout(dragmode="pan")
 
-        def padded_range(series: pd.Series, offset_val: float) -> list[float]:
-            s = series.dropna()
-            if s.empty:
-                return [offset_val - 1, offset_val + 1]
-
-            min_val = min(s.min(), offset_val)
-            max_val = s.max()
-            span = max_val - min_val or 1.0
-            pad = span * self.axis_padding
-
-            return [min_val - pad, max_val + pad]
-
-        fig.update_xaxes(range=self.xaxis_range or padded_range(x, x_offset), title_text=self.x)
-        fig.update_yaxes(range=self.yaxis_range or padded_range(y, y_offset), title_text=self.y)
+        fig.update_xaxes(
+            range=self.xaxis_range or self._padded_range(x, x_offset), title_text=self.x
+        )
+        fig.update_yaxes(
+            range=self.yaxis_range or self._padded_range(y, y_offset), title_text=self.y
+        )
 
         self._apply_base_layout(fig)
 

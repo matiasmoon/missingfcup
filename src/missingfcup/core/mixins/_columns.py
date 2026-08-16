@@ -14,11 +14,6 @@ class _MissingDataColumnsMixin:
     """
 
     mask_missing: pd.DataFrame
-    number_of_rows: int
-
-    # ------------------------------------------------------------------
-    # Column metrics
-    # ------------------------------------------------------------------
 
     @cached_property
     def col_missing_rate(self) -> pd.Series:
@@ -58,10 +53,6 @@ class _MissingDataColumnsMixin:
     def cols_complete(self) -> pd.Index:
         """Column labels with zero missing values."""
         return self.col_missing_count.loc[lambda s: s == 0].index
-
-    # ------------------------------------------------------------------
-    # Column filtering
-    # ------------------------------------------------------------------
 
     def columns_above_missing_threshold(self, threshold: float) -> pd.Index:
         """

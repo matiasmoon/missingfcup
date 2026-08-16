@@ -21,9 +21,7 @@ class _MissingDataUtilsMixin:
     mask_present: pd.DataFrame
     data: pd.DataFrame
 
-    # ------------------------------------------------------------------
     # Correlation matrices
-    # ------------------------------------------------------------------
 
     @cached_property
     def missing_corr(self) -> pd.DataFrame:
@@ -122,9 +120,7 @@ class _MissingDataUtilsMixin:
 
         return corr
 
-    # ------------------------------------------------------------------
     # Pattern analysis
-    # ------------------------------------------------------------------
 
     @cached_property
     def missing_pattern_in_rows(self) -> pd.Series:
@@ -171,9 +167,7 @@ class _MissingDataUtilsMixin:
                     pairs.append((cols[i], cols[j]))
         return pairs
 
-    # ------------------------------------------------------------------
     # Statistical tests
-    # ------------------------------------------------------------------
 
     def littles_mcar_test(
         self,
@@ -367,6 +361,8 @@ class _MissingDataUtilsMixin:
         within each ``by`` group (pairwise-complete). Requires at least one
         observed value of ``x`` in each group.
         """
+        # Imported here rather than at module scope: this mixin loads on `import
+        # missingfcup`, and scipy.stats is slow to import for a rarely called test.
         from scipy.stats import mannwhitneyu
 
         if x not in self.data.columns:

@@ -47,10 +47,6 @@ class _Boxplot(_Plot):
         self.color_by = color_by
         self.plot_type = plot_type
 
-    # ------------------------------------------------------------------
-    # Validation
-    # ------------------------------------------------------------------
-
     def _validate(self) -> None:
         df = self.data.data
         if self.x not in df.columns:
@@ -64,10 +60,6 @@ class _Boxplot(_Plot):
                 f"Encode it first, e.g.:\n"
                 f"  df['{self.x}'] = pd.factorize(df['{self.x}'])[0]"
             )
-
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
 
     def _build_figure(self) -> go.Figure:
         self._validate()

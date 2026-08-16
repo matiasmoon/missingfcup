@@ -63,9 +63,6 @@ class Panel:
         self.plots.append(plot)
         return self
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _create_combined_figure(self) -> go.Figure:
         if not self.plots:
             raise ValueError(
@@ -76,11 +73,9 @@ class Panel:
 
         n_plots = len(self.plots)
 
-        # Grid layout
         cols = min(self.max_cols, n_plots)
         rows = (n_plots + cols - 1) // cols
 
-        # Collect per-subplot titles (pad to full grid size)
         subplot_titles = []
         for i in range(rows * cols):
             if i < n_plots:
@@ -106,7 +101,6 @@ class Panel:
                 # Deep copy to avoid mutating the original plot's traces
                 trace_copy = copy.deepcopy(trace)
 
-                # No shared global legend in panels
                 trace_copy.showlegend = False
 
                 # Hide colorbars to prevent overlap
@@ -115,7 +109,6 @@ class Panel:
 
                 fig.add_trace(trace_copy, row=row, col=col)
 
-            # Preserve axis titles
             if plot_fig.layout.xaxis.title.text:
                 fig.update_xaxes(
                     title_text=plot_fig.layout.xaxis.title.text,
@@ -130,7 +123,6 @@ class Panel:
                     col=col,
                 )
 
-        # Figure sizing: use explicit override if provided, else fall back to heuristic
         if self.width is not None:
             total_width = self.width
         elif cols == 3:
@@ -164,15 +156,12 @@ class Panel:
             return "panel-" + _slugify(self.title)
         return "panel"
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     def show(self):
         """Display all plots in a single interactive figure."""
         config = {"toImageButtonOptions": {"filename": self._download_filename}}
         self._create_combined_figure().show(config=config)
 
-    def save(self, path: str = None, save_individual: bool = False):
+    def save(self, path: Optional[str] = None, save_individual: bool = False):
         """Save the panel. path is the destination file including extension (.html or .png).
         Defaults to plots/<name>.png relative to the current directory.
         If save_individual=True, each sub-plot is also saved as a separate PNG in the same directory."""

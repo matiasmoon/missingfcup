@@ -2,22 +2,13 @@ from typing import List, Literal, Optional
 
 import numpy as np
 import plotly.graph_objects as go
+from scipy.cluster.hierarchy import dendrogram as _scipy_dendrogram
+from scipy.cluster.hierarchy import linkage
+from scipy.spatial.distance import squareform
 
 from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
-
-try:
-    from scipy.cluster.hierarchy import dendrogram as _scipy_dendrogram
-    from scipy.cluster.hierarchy import linkage
-    from scipy.spatial.distance import squareform
-except Exception as exc:  # pragma: no cover; runtime optional dependency
-    linkage = None
-    _scipy_dendrogram = None
-    squareform = None
-    _SCIPY_IMPORT_ERROR = exc
-else:
-    _SCIPY_IMPORT_ERROR = None
 
 
 class _Dendrogram(_Plot):
@@ -55,11 +46,6 @@ class _Dendrogram(_Plot):
         self.line_color = line_color
 
     def _build_figure(self) -> go.Figure:
-        if linkage is None or _scipy_dendrogram is None or squareform is None:
-            raise ImportError(
-                "Dendrogram requires scipy. Install it with: pip install scipy"
-            ) from _SCIPY_IMPORT_ERROR
-
         cols = select_columns(
             self.data,
             self.selected_columns,
@@ -115,7 +101,7 @@ class _Dendrogram(_Plot):
                 tickvals=leaf_positions,
                 ticktext=labels,
                 tickangle=-45,
-                title=labels[0] if labels else "",
+                title="Column",
             ),
             yaxis=dict(
                 title="Distance",

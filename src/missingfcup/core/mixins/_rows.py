@@ -17,10 +17,6 @@ class _MissingDataRowsMixin:
     mask_missing: pd.DataFrame
     data: pd.DataFrame
 
-    # ------------------------------------------------------------------
-    # Row metrics
-    # ------------------------------------------------------------------
-
     @cached_property
     def row_missing_rate(self) -> pd.Series:
         """
@@ -60,10 +56,6 @@ class _MissingDataRowsMixin:
         """Index labels of rows that contain at least one missing value."""
         return self.row_missing_count.loc[lambda s: s > 0].index
 
-    # ------------------------------------------------------------------
-    # Row filtering
-    # ------------------------------------------------------------------
-
     def rows_above_missing_threshold(self, threshold: float) -> pd.Index:
         """
         Return rows whose missing rate strictly exceeds ``threshold``.
@@ -78,10 +70,6 @@ class _MissingDataRowsMixin:
         if not 0 <= threshold <= 1:
             raise ValueError("threshold must be between 0 and 1")
         return self.row_missing_rate.loc[lambda s: s > threshold].index
-
-    # ------------------------------------------------------------------
-    # Row label helper
-    # ------------------------------------------------------------------
 
     def row_labels(self, index: Optional[pd.Index] = None) -> list[str]:
         """

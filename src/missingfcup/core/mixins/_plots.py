@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, List, Literal, Optional
+from typing import TYPE_CHECKING, Dict, List, Literal, Optional, cast
 
 if TYPE_CHECKING:
+    from missingfcup.core.missing_data import MissingData
     from missingfcup.plots._boxplot import _Boxplot
     from missingfcup.plots._dendrogram import _Dendrogram
     from missingfcup.plots._density import _Density
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
     from missingfcup.plots._totals import _Totals
     from missingfcup.plots._upset import _Upset
     from missingfcup.plots._venn import _Venn
+
+
+def _md(mixin: "_MissingDataPlotMixin") -> "MissingData":
+    """Narrow the mixin to the concrete class it is always part of.
+
+    The plot classes take a ``MissingData``, and this mixin exists only to keep the
+    factories in their own file, so ``self`` is always one. Stating that here lets a
+    type checker verify every construction below.
+    """
+    return cast("MissingData", mixin)
 
 
 class _MissingDataPlotMixin:
@@ -51,7 +62,7 @@ class _MissingDataPlotMixin:
         missing rate per column; ``scale`` applies.
         """
         shared = dict(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             ignore_high_missingness=ignore_high_missingness,
             high_missingness_threshold=high_missingness_threshold,
@@ -77,7 +88,7 @@ class _MissingDataPlotMixin:
         """Create a bar chart showing total present vs missing cell counts across the dataset."""
         from missingfcup.plots._totals import _Totals
 
-        return _Totals(data=self, **kwargs)
+        return _Totals(data=_md(self), **kwargs)
 
     def matrix(
         self,
@@ -100,7 +111,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._matrix import _Matrix
 
         return _Matrix(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             ignore_high_missingness=ignore_high_missingness,
             high_missingness_threshold=high_missingness_threshold,
@@ -136,7 +147,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._scatterplot import _Scatterplot
 
         return _Scatterplot(
-            data=self,
+            data=_md(self),
             x=x,
             y=y,
             point_size=point_size,
@@ -165,7 +176,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._venn import _Venn
 
         return _Venn(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             order=order,
             value=value,
@@ -194,7 +205,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._upset import _Upset
 
         return _Upset(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             max_sets=max_sets,
             max_intersections=max_intersections,
@@ -231,7 +242,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._parallel_coordinates import _ParallelCoordinates
 
         return _ParallelCoordinates(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             missingness_color_column=missingness_color_column,
             max_columns=max_columns,
@@ -260,7 +271,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._density import _Density
 
         return _Density(
-            data=self,
+            data=_md(self),
             x=x,
             color_by=color_by,
             n_points=n_points,
@@ -320,7 +331,7 @@ class _MissingDataPlotMixin:
             drop_constant_columns = kind == "biserial"
 
         shared = dict(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             ignore_high_missingness=ignore_high_missingness,
             high_missingness_threshold=high_missingness_threshold,
@@ -375,7 +386,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._rate import _Rate
 
         return _Rate(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             ignore_high_missingness=ignore_high_missingness,
             high_missingness_threshold=high_missingness_threshold,
@@ -411,7 +422,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._dendrogram import _Dendrogram
 
         return _Dendrogram(
-            data=self,
+            data=_md(self),
             selected_columns=selected_columns,
             ignore_high_missingness=ignore_high_missingness,
             high_missingness_threshold=high_missingness_threshold,
@@ -457,7 +468,7 @@ class _MissingDataPlotMixin:
         from missingfcup.plots._boxplot import _Boxplot
 
         return _Boxplot(
-            data=self,
+            data=_md(self),
             x=x,
             color_by=color_by,
             plot_type=plot_type,

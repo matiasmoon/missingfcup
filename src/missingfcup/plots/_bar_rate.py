@@ -49,12 +49,11 @@ class _BarRate(_BarBase):
             textposition="auto" if self.show_values else None,
         )
 
-        first_col = columns[0] if columns else ""
         if self.orientation == "vertical":
-            fig.update_xaxes(tickangle=-45, title_text=first_col)
+            fig.update_xaxes(tickangle=-45, title_text="Column")
             fig.update_yaxes(title_text=y_title)
         else:
             fig.update_xaxes(title_text=y_title)
-            fig.update_yaxes(title_text=first_col)
+            fig.update_yaxes(title_text="Column")
         self._apply_base_layout(fig)
         return fig

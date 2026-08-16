@@ -33,9 +33,6 @@ class _Venn(_Plot):
         self.value = value
         self.show_values = show_values
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _prepare_columns(self) -> List[str]:
         df = self.data.data
         if self.selected_columns:
@@ -79,9 +76,9 @@ class _Venn(_Plot):
         counts = [subset_count(s) for s in subsets]
 
         if self.order == "asc":
-            labels_full, counts = zip(*sorted(zip(labels_full, counts), key=lambda x: x[1]))
-            labels_full = list(labels_full)
-            counts = list(counts)
+            ordered = sorted(zip(labels_full, counts), key=lambda pair: pair[1])
+            labels_full = [label for label, _ in ordered]
+            counts = [count for _, count in ordered]
 
         total_rows = len(df)
         if self.value == "percent":
@@ -91,7 +88,7 @@ class _Venn(_Plot):
                 [f"{v:.1f}%" if v > 0 else "" for v in values] if self.show_values else None
             )
         else:
-            values = counts
+            values = [float(c) for c in counts]
             y_title = "Number of rows"
             text_values = (
                 [f"{int(v)}" if v > 0 else "" for v in values] if self.show_values else None
@@ -130,7 +127,7 @@ class _Venn(_Plot):
             uniformtext=dict(minsize=8, mode="hide"),
         )
         fig.update_traces(textangle=0, textfont=dict(size=10), cliponaxis=False)
-        fig.update_xaxes(title_text=a)
+        fig.update_xaxes(title_text="Missing columns")
         fig.update_yaxes(automargin=True, rangemode="tozero", title_text=y_title)
 
         max_val = max(values) if values else 0

@@ -21,10 +21,6 @@ class _MissingDataCoreMixin:
 
     data: pd.DataFrame  # provided by MissingData.__init__
 
-    # ------------------------------------------------------------------
-    # Core masks
-    # ------------------------------------------------------------------
-
     @cached_property
     def mask_missing(self) -> pd.DataFrame:
         """
@@ -53,10 +49,6 @@ class _MissingDataCoreMixin:
         """
         return self.mask_present.to_numpy(np.uint8)
 
-    # ------------------------------------------------------------------
-    # Basic DataFrame properties
-    # ------------------------------------------------------------------
-
     @property
     def columns(self) -> list[str]:
         """Column names of the underlying DataFrame."""
@@ -71,10 +63,6 @@ class _MissingDataCoreMixin:
     def number_of_columns(self) -> int:
         """Total number of columns in the DataFrame."""
         return self.data.shape[1]
-
-    # ------------------------------------------------------------------
-    # Dataset-level missingness totals
-    # ------------------------------------------------------------------
 
     @cached_property
     def total_missing_rate(self) -> float:

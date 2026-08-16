@@ -1,3 +1,4 @@
+import warnings
 from typing import List, Literal, Optional
 
 import plotly.graph_objects as go
@@ -50,9 +51,6 @@ class _Upset(_Plot):
         self.highlight_columns = highlight_columns
         self.highlight_color = highlight_color
 
-    # ------------------------------------------------------------------
-    # Data prep
-    # ------------------------------------------------------------------
     def _prepare_columns(self) -> List[str]:
         df = self.data.data
         if self.selected_columns:
@@ -66,7 +64,17 @@ class _Upset(_Plot):
         if not cols:
             raise ValueError("upset requires at least one column with missing values.")
 
-        if self.max_sets > 0:
+        if self.max_sets > 0 and len(cols) > self.max_sets:
+            dropped = cols[self.max_sets :]
+            if self.selected_columns:
+                # Dropping a column the caller asked for by name is worth saying out
+                # loud; silently drawing fewer sets than requested looks like a bug.
+                warnings.warn(
+                    f"upset() is showing {self.max_sets} of the {len(cols)} selected "
+                    f"columns; {dropped} were dropped. Raise max_sets to include them.",
+                    UserWarning,
+                    stacklevel=2,
+                )
             cols = cols[: self.max_sets]
 
         return cols
@@ -93,9 +101,6 @@ class _Upset(_Plot):
 
         return counts
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
         cols = self._prepare_columns()
         intersection_counts = self._compute_intersections(cols)
@@ -146,8 +151,9 @@ class _Upset(_Plot):
         bar_colors = None
         if self.highlight_columns:
             highlight_set = set(self.highlight_columns)
+            highlight = self.highlight_color or self.missing_color
             bar_colors = [
-                self.highlight_color if label in highlight_set else self.missing_color
+                highlight if label in highlight_set else self.missing_color
                 for label in set_labels_full
             ]
 

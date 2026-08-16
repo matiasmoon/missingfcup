@@ -60,34 +60,25 @@ class _Plot(ABC):
         self.data = data
         self.title = title
 
-        # Layout / theme
         self.width = min(width, 2000)
         self.height = min(height, 1000)
         self.background_color = background_color
         self.text_color = text_color
 
-        # Semantic colors
         self.missing_color = missing_color
         self.present_color = present_color
 
-        # Legend
         self.show_legend = show_legend
         self.legend_title = legend_title
         self.max_label_length = max_label_length
 
         self._figure: Optional[go.Figure] = None
 
-    # ------------------------------------------------------------------
-    # Subclass contract
-    # ------------------------------------------------------------------
     @abstractmethod
     def _build_figure(self) -> go.Figure:
         """Subclasses must construct and return a plotly Figure."""
         raise NotImplementedError
 
-    # ------------------------------------------------------------------
-    # Shared helpers
-    # ------------------------------------------------------------------
     def _apply_base_layout(self, fig: go.Figure):
         """Apply shared layout, colors, and typography."""
         fig.update_layout(
@@ -129,7 +120,7 @@ class _Plot(ABC):
         out = [truncate(label) for label in labels]
 
         if len(set(out)) < len(out):
-            counts_seen = {}
+            counts_seen: dict = {}
             adjusted = []
             for label in out:
                 counts_seen[label] = counts_seen.get(label, 0) + 1
@@ -150,9 +141,6 @@ class _Plot(ABC):
             parts.append(_slugify(self.title))
         return "-".join(parts)
 
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
     @property
     def fig(self) -> go.Figure:
         """Lazily build and cache the figure."""
@@ -173,7 +161,7 @@ class _Plot(ABC):
         """
         self.show()
 
-    def save(self, path: str = None):
+    def save(self, path: Optional[str] = None):
         """Save the figure to ``path``, where the extension picks the format (.html or .png).
         Defaults to plots/<name>.png relative to the current directory."""
         _write_figure(self.fig, path, self._download_filename)

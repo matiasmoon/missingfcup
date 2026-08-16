@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._color import hex_to_rgba
+from missingfcup.plots._ordering import normalize_order_by
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
@@ -58,9 +59,6 @@ class _Matrix(_Plot):
         self.order_by_border_width = order_by_border_width
         self.order_by_y_labels = order_by_y_labels
 
-    # ------------------------------------------------------------------
-    # Data preparation
-    # ------------------------------------------------------------------
     def _prepare_df(self) -> pd.DataFrame:
         cols = select_columns(
             self.data,
@@ -93,14 +91,11 @@ class _Matrix(_Plot):
         return df[order_cols + remaining]
 
     def _apply_ordering(self, df: pd.DataFrame) -> pd.DataFrame:
-        if len(self.order_by) > 2:
-            raise ValueError("order_by supports at most 2 specifications.")
-
-        for spec in reversed(self.order_by):
-            axis = spec.get("axis", "columns")
-            ascending = spec.get("ascending", True)
-            col = spec.get("column")
-            spec_type = spec.get("type", "numeric")
+        for spec in reversed(normalize_order_by(self.order_by, max_specs=2)):
+            axis = spec["axis"]
+            ascending = spec["ascending"]
+            col = spec["column"]
+            spec_type = spec["type"]
 
             if axis == "columns":
                 if col == "__missing__":
@@ -155,7 +150,7 @@ class _Matrix(_Plot):
                             na_position="last",
                         )
                     else:
-                        category_order = spec.get("category_order")
+                        category_order = spec["category_order"]
                         if category_order is not None:
                             cat = pd.Categorical(df[col], categories=category_order, ordered=True)
                             df = df.assign(**{col: cat}).sort_values(
@@ -173,9 +168,6 @@ class _Matrix(_Plot):
 
         return df
 
-    # ------------------------------------------------------------------
-    # Figure construction
-    # ------------------------------------------------------------------
     def _build_figure(self) -> go.Figure:
         df = self._prepare_df()
 

@@ -152,7 +152,7 @@ class _ParallelCoordinates(_Plot):
                 gridcolor="rgba(150,150,150,0.4)",
                 zeroline=False,
                 range=[-0.5, m - 0.5],
-                title=cols[0] if cols else "",
+                title="Column",
             ),
             yaxis=dict(
                 title="Normalized value",

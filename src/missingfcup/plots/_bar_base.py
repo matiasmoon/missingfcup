@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots._ordering import normalize_order_by
 from missingfcup.plots._plot import _Plot
 
 
@@ -44,9 +45,6 @@ class _BarBase(_Plot):
         self.orientation = orientation
         self.show_values = show_values
 
-    # ------------------------------------------------------------------
-    # Data prep (shared by count and rate)
-    # ------------------------------------------------------------------
     def _prepare_df(self) -> pd.DataFrame:
         df = self.data.data.copy()
         df = self._apply_missingness_filter(df)
@@ -94,30 +92,17 @@ class _BarBase(_Plot):
         return df.iloc[:, : self.max_columns]
 
     def _apply_ordering(self, df: pd.DataFrame) -> pd.DataFrame:
-        if not self.order_by:
-            return df
-
-        for spec in reversed(self.order_by):
-            col = spec["column"]
-            ascending = spec.get("numeric_order", "asc") == "asc"
-            if "ascending" in spec:
-                ascending = bool(spec["ascending"])
-
-            if col == "__missing__":
+        specs = normalize_order_by(
+            self.order_by,
+            supports_rows=False,
+            supports_data_columns=False,
+        )
+        for spec in reversed(specs):
+            ascending = spec["ascending"]
+            if spec["column"] == "__missing__":
                 missing_counts = self.data.col_missing_count.loc[df.columns]
                 ordered_cols = missing_counts.sort_values(ascending=ascending, kind="stable").index
                 df = df.loc[:, ordered_cols]
-                continue
-
-            if col == "__column__":
-                ordered_cols = sorted(df.columns, reverse=not ascending)
-                df = df.loc[:, ordered_cols]
-                continue
-
-            if spec["type"] == "numeric":
-                df = df.sort_values(col, ascending=ascending, kind="stable")
-            elif spec["type"] == "categorical":
-                cat = pd.Categorical(df[col], categories=spec["category_order"], ordered=True)
-                df = df.assign(**{col: cat}).sort_values(col, kind="stable")
-
+            else:  # "__column__", the only other value the validator allows
+                df = df.loc[:, sorted(df.columns, reverse=not ascending)]
         return df

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+from scipy.stats import gaussian_kde
 
 from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._color import hex_to_rgba
@@ -39,12 +40,14 @@ class _Density(_Plot):
         self.fill_opacity = fill_opacity
 
     def _kde(self, values: np.ndarray, x_range: np.ndarray) -> np.ndarray:
-        """KDE over x_range using scipy if available, else histogram interpolation."""
-        try:
-            from scipy.stats import gaussian_kde
+        """Gaussian kernel density estimate of ``values`` evaluated over ``x_range``.
 
+        Falls back to a histogram when the group has no spread: a constant column gives
+        a singular covariance matrix, which ``gaussian_kde`` cannot invert.
+        """
+        try:
             return gaussian_kde(values)(x_range)
-        except ImportError:
+        except np.linalg.LinAlgError:
             counts, edges = np.histogram(values, bins=50, density=True)
             centers = (edges[:-1] + edges[1:]) / 2
             return np.interp(x_range, centers, counts, left=0.0, right=0.0)

@@ -60,9 +60,6 @@ class _AssociationHeatmap(_Plot):
         self.nan_color = nan_color
         self.text_font_size = text_font_size
 
-    # ------------------------------------------------------------------
-    # Hooks for subclasses
-    # ------------------------------------------------------------------
     def _matrix(self) -> pd.DataFrame:
         raise NotImplementedError
 
@@ -76,9 +73,6 @@ class _AssociationHeatmap(_Plot):
         fig.update_xaxes(tickangle=-45)
         fig.update_yaxes(tickangle=0, title_standoff=15)
 
-    # ------------------------------------------------------------------
-    # Shared figure construction
-    # ------------------------------------------------------------------
     def _cell_text(self, corr_values: np.ndarray) -> np.ndarray:
         text = np.empty(corr_values.shape, dtype=object)
         rounded = np.round(corr_values, self.value_round)
