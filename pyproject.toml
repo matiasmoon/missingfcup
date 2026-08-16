@@ -1,6 +1,8 @@
 [project]
 name = "missingfcup"
-version = "0.1.0"
+# Read from missingfcup.__version__ (see [tool.setuptools.dynamic]) so the version
+# has a single home instead of being repeated here and in the package.
+dynamic = ["version"]
 description = "Interactive Plotly visualizations and metrics for exploring missing data in pandas DataFrames"
 authors = [
     { name = "Matias Luna", email = "matiasortizluna.contacto@gmail.com" }
@@ -9,12 +11,17 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 
+# Every floor here is exercised by the `minimums` job in CI, not guessed.
 dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
-    "plotly>=5.20",
+    # 6.1.1 is the lowest plotly that kaleido 1.x accepts, and the lowest that has
+    # the axis properties the UpSet plot sets.
+    "plotly>=6.1.1",
     "scipy>=1.10",
-    "kaleido>=0.2,<1.0"
+    # Renders figures to PNG. Fetches a browser on first export; `plotly_get_chrome -y`
+    # does it up front.
+    "kaleido>=1.0"
 ]
 
 classifiers = [
@@ -44,10 +51,19 @@ Source = "https://github.com/matiasmoon/missingfcup"
 "Bug Tracker" = "https://github.com/matiasmoon/missingfcup/issues"
 
 [project.optional-dependencies]
-# Tests need pytest; ruff lints and formats. The core deps cover the rest.
 dev = ["pytest>=7.0", "ruff>=0.6"]
-# Extra packages the example notebooks use (not needed to run the library).
-examples = ["seaborn>=0.12", "mdatagen", "scikit-learn>=1.3", "ucimlrepo", "statsmodels>=0.14"]
+# For notebooks/, not examples/ — the example scripts need only the core package.
+# jupyter is included because the notebooks import IPython and cannot run without it.
+# The floors record the versions the committed analyses were produced with.
+notebooks = [
+    "jupyter>=1.0",
+    "seaborn>=0.12",
+    "mdatagen>=0.2",
+    "scikit-learn>=1.3",
+    "ucimlrepo>=0.0.7",
+]
+# ruff is listed because mkdocstrings uses it to format rendered signatures.
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -55,8 +71,12 @@ where = ["src"]
 [tool.setuptools.package-data]
 missingfcup = ["py.typed"]
 
+[tool.setuptools.dynamic]
+version = { attr = "missingfcup.__version__" }
+
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+# setuptools 77 is the floor for PEP 639, which lets `license` be a plain SPDX string.
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
@@ -65,8 +85,12 @@ target-version = "py39"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
-# E/W pycodestyle, F pyflakes, I import sorting, B bugbear. UP (pyupgrade) is left
-# off on purpose: it rewrites typing to 3.10+ syntax, but the package supports 3.9.
+# UP (pyupgrade) is left off on purpose: it rewrites typing to 3.10+ syntax, but the
+# package supports 3.9. E501 is the formatter's job.
 select = ["E", "W", "F", "I", "B"]
-# Line length is enforced by the formatter, which leaves long strings/comments alone.
 ignore = ["E501"]
+
+[tool.pytest.ini_options]
+# src layout: put the package on sys.path so pytest works without an editable install.
+pythonpath = ["src"]
+testpaths = ["tests"]
