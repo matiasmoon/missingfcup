@@ -68,7 +68,9 @@ class _MissingDataRowsMixin:
             * 0.5: rows missing more than half their values
         """
         if not 0 <= threshold <= 1:
-            raise ValueError("threshold must be between 0 and 1")
+            raise ValueError(
+                f"threshold must be a missing rate between 0 and 1, got {threshold!r}."
+            )
         return self.row_missing_rate.loc[lambda s: s > threshold].index
 
     def row_labels(self, index: Optional[pd.Index] = None) -> list[str]:

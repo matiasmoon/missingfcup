@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 
 
@@ -21,31 +22,49 @@ class _Venn(_Plot):
         data: MissingData,
         *,
         selected_columns: Optional[List[str]] = None,
-        order: Literal["desc", "asc"] = "desc",
-        value: Literal["count", "percent"] = "count",
+        sort_by: Optional[Literal["size"]] = "size",
+        ascending: bool = False,
+        measure: Literal["count", "fraction", "percentage"] = "count",
         show_values: bool = True,
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
-        self.order = order
-        self.value = value
+        self.sort_by = sort_by
+        self.ascending = ascending
+        self.measure = measure
         self.show_values = show_values
 
     def _prepare_columns(self) -> List[str]:
-        df = self.data.data
-        if self.selected_columns:
-            cols = [c for c in self.selected_columns if c in df.columns]
-            if len(cols) < 3:
-                raise ValueError("venn requires at least 3 valid columns.")
-            return cols[:3]
+        """The three columns to compare, which the caller has to name.
 
-        missing_rate = self.data.col_missing_rate
-        cols = missing_rate.sort_values(ascending=False).head(3).index.tolist()
-        if len(cols) < 3:
-            raise ValueError("venn requires at least 3 columns.")
-        return cols
+        A three-set Venn has exactly 7 exclusive regions, so the plot is defined by
+        three columns and no other number will do. Choosing them here -- by missing
+        rate, say -- would mean the figure silently answered a different question
+        from the one that was asked.
+        """
+        if not self.selected_columns:
+            # Naming them is required, but the caller should not have to go looking:
+            # suggest the three with the most missing data.
+            suggestion = (
+                self.data.col_missing_rate.loc[lambda s: s > 0]
+                .sort_values(ascending=False)
+                .head(3)
+                .index.tolist()
+            )
+            hint = f" The 3 emptiest are {suggestion}." if len(suggestion) == 3 else ""
+            raise ValueError(f"venn() needs selected_columns: name the 3 columns to compare.{hint}")
+        df = self.data.data
+        missing = [c for c in self.selected_columns if c not in df.columns]
+        if missing:
+            raise ValueError(f"Columns not found in the DataFrame: {missing}.")
+        if len(self.selected_columns) != 3:
+            raise ValueError(
+                f"venn() compares exactly 3 columns, got {len(self.selected_columns)}. "
+                "Use upset() to compare a different number."
+            )
+        return list(self.selected_columns)
 
     def _build_figure(self) -> go.Figure:
         cols = self._prepare_columns()
@@ -75,17 +94,26 @@ class _Venn(_Plot):
         labels_full = [", ".join(s) for s in subsets]
         counts = [subset_count(s) for s in subsets]
 
-        if self.order == "asc":
+        if self.ascending:
             ordered = sorted(zip(labels_full, counts), key=lambda pair: pair[1])
             labels_full = [label for label, _ in ordered]
             counts = [count for _, count in ordered]
 
         total_rows = len(df)
-        if self.value == "percent":
-            values = [c / max(total_rows, 1) * 100.0 for c in counts]
-            y_title = "Percent of rows"
+        # measure means the same here as on bar() and rate(): one option covering
+        # absolute counts and the two relative forms.
+        if self.measure != "count":
+            rates = [c / max(total_rows, 1) for c in counts]
+            if self.measure == "percentage":
+                values = [r * 100.0 for r in rates]
+                y_title = "Percent of rows"
+                fmt = "{:.2f}%"
+            else:
+                values = rates
+                y_title = "Fraction of rows"
+                fmt = "{:.2f}"
             text_values = (
-                [f"{v:.1f}%" if v > 0 else "" for v in values] if self.show_values else None
+                [fmt.format(v) if v > 0 else "" for v in values] if self.show_values else None
             )
         else:
             values = [float(c) for c in counts]
@@ -97,23 +125,26 @@ class _Venn(_Plot):
         labels_display = self._truncate_labels(labels_full)
 
         fig = go.Figure()
+        # Only ever one series here too.
         fig.add_bar(
+            showlegend=False,
             x=labels_display,
             y=values,
-            name="Missing values",
+            name="NA",
             marker_color=self.missing_color,
             text=text_values,
             textposition="outside" if self.show_values else None,
-            hovertemplate=(
-                "<b>Missing columns</b>: %{customdata[2]}<br>"
-                "<b>Rows</b>: %{customdata[1]}<br>"
-                "<b>Percent</b>: %{customdata[0]:.1f}%<extra></extra>"
+            # Count and share regardless of measure: the tooltip has room for both,
+            # so it should not make the reader change measure to see the other one.
+            hovertemplate=_hover.build(
+                _hover.title("%{customdata[2]}"),
+                "%{customdata[1]}",
             ),
             customdata=[
                 [percent, count, full]
                 for percent, count, full in zip(
                     [c / max(total_rows, 1) * 100.0 for c in counts],
-                    counts,
+                    [_hover.rows_of_total(c, total_rows) for c in counts],
                     labels_full,
                 )
             ],
@@ -126,7 +157,7 @@ class _Venn(_Plot):
             yaxis=dict(rangemode="tozero"),
             uniformtext=dict(minsize=8, mode="hide"),
         )
-        fig.update_traces(textangle=0, textfont=dict(size=10), cliponaxis=False)
+        fig.update_traces(textangle=0, cliponaxis=False)
         fig.update_xaxes(title_text="Missing columns")
         fig.update_yaxes(automargin=True, rangemode="tozero", title_text=y_title)
 

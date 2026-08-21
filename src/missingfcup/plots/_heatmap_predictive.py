@@ -16,28 +16,16 @@ class _HeatmapPredictive(_AssociationHeatmap):
         cols = select_columns(
             self.data,
             self.selected_columns,
-            ignore_high_missingness=self.ignore_high_missingness,
             high_missingness_threshold=self.high_missingness_threshold,
             drop_constant=self.drop_constant_columns,
-            order_by_missingness=self.order_by_missingness,
-            order=self.order,
+            sort_by=self.sort_by,
+            ascending=self.ascending,
             max_columns=self.max_columns,
         )
         return self.data.present_missing_corr.loc[cols, cols]
 
-    def _colorbar_config(self) -> dict:
-        return dict(
-            title=(
-                "Present vs Missing"
-                "<br><span style='font-size:10px'>blue = present predicts missing | red = both present</span>"
-                "<br><span style='font-size:10px'>NaN = constant column</span>"
-            ),
-            tickmode="array",
-            tickvals=[-1, 0, 1],
-            ticktext=["Both present", "Independent", "Present predicts missing"],
-        )
+    def _axis_roles(self) -> tuple:
+        return "presence of", "missingness of", "Correlation"
 
-    def _hover_template(self) -> str:
-        return (
-            "<b>Present</b>: %{y}<br><b>Missing</b>: %{x}<br>Correlation: %{z:.2f}<extra></extra>"
-        )
+    def _axis_titles(self) -> tuple:
+        return "Missing column", "Observed column"

@@ -42,7 +42,7 @@ class MissingData(
 
         df["col"] = pd.factorize(df["col"])[0]   # ordinal / nominal
 
-    ``parallel_coordinates(missingness_only=True)`` is an escape hatch that
+    ``parallel_coordinates(kind="missingness")`` is an escape hatch that
     renders all columns as binary (present/missing) regardless of dtype.
 
     Examples

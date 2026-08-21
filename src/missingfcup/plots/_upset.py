@@ -5,7 +5,24 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
+
+# The membership dots are sized to the matrix, not to taste, and the line joining
+# them has to read as thick as the dots so the intersection scans as one unit.
+_DOT_SIZE = 12
+_LINE_WIDTH = 3.0
+
+# Grey, because it marks the absence of membership rather than a value: it is the
+# lattice the red dots sit on, and any other colour would compete with them.
+_EXCLUDED_DOT_COLOR = "#e0e0e0"
+
+# Intersections grow as 2**n, so the bar count has to be capped or a wide selection
+# draws an unreadable comb. Truncation loses information, so it warns rather than
+# trimming quietly. Every intersection that occurs at all is worth drawing, so the
+# size floor is 1 and only the empty intersection is dropped.
+_MAX_INTERSECTIONS = 20
+_MIN_INTERSECTION_SIZE = 1
 
 
 class _Upset(_Plot):
@@ -23,16 +40,10 @@ class _Upset(_Plot):
         data: MissingData,
         *,
         selected_columns: Optional[List[str]] = None,
-        max_sets: int = 3,
-        max_intersections: int = 20,
-        min_intersection_size: int = 1,
-        order: Literal["desc", "asc"] = "desc",
+        sort_by: Optional[Literal["size"]] = "size",
+        ascending: bool = False,
+        measure: Literal["count", "fraction", "percentage"] = "count",
         show_values: bool = True,
-        matrix_dot_size: int = 12,
-        matrix_line_width: int = 3,
-        excluded_dot_color: str = "#e0e0e0",
-        highlight_columns: Optional[List[str]] = None,
-        highlight_color: Optional[str] = None,
         **kwargs,
     ):
         if "show_legend" not in kwargs:
@@ -40,44 +51,32 @@ class _Upset(_Plot):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
-        self.max_sets = max_sets
-        self.max_intersections = max_intersections
-        self.min_intersection_size = min_intersection_size
-        self.order = order
+        self.sort_by = sort_by
+        self.ascending = ascending
+        self.measure = measure
         self.show_values = show_values
-        self.matrix_dot_size = matrix_dot_size
-        self.matrix_line_width = matrix_line_width
-        self.excluded_dot_color = excluded_dot_color
-        self.highlight_columns = highlight_columns
-        self.highlight_color = highlight_color
 
     def _prepare_columns(self) -> List[str]:
+        """The columns to draw as sets, which the caller has to name.
+
+        Every named column is drawn. UpSet exists to compare more columns than a Venn
+        can, so capping the sets here would defeat the point; the intersection cap
+        already keeps the bar count readable.
+        """
+        if not self.selected_columns:
+            # Same idea as venn(): required, but point at the columns worth comparing.
+            suggestion = (
+                self.data.col_missing_rate.loc[lambda s: s > 0]
+                .sort_values(ascending=False)
+                .index.tolist()
+            )
+            hint = f" Columns with missing values: {suggestion}." if suggestion else ""
+            raise ValueError(f"upset() needs selected_columns: name the columns to compare.{hint}")
         df = self.data.data
-        if self.selected_columns:
-            cols = [c for c in self.selected_columns if c in df.columns]
-            if not cols:
-                raise ValueError("No selected columns found in the DataFrame.")
-        else:
-            missing_rate = self.data.col_missing_rate
-            cols = missing_rate.loc[lambda s: s > 0].sort_values(ascending=False).index.tolist()
-
-        if not cols:
-            raise ValueError("upset requires at least one column with missing values.")
-
-        if self.max_sets > 0 and len(cols) > self.max_sets:
-            dropped = cols[self.max_sets :]
-            if self.selected_columns:
-                # Dropping a column the caller asked for by name is worth saying out
-                # loud; silently drawing fewer sets than requested looks like a bug.
-                warnings.warn(
-                    f"upset() is showing {self.max_sets} of the {len(cols)} selected "
-                    f"columns; {dropped} were dropped. Raise max_sets to include them.",
-                    UserWarning,
-                    stacklevel=2,
-                )
-            cols = cols[: self.max_sets]
-
-        return cols
+        missing = [c for c in self.selected_columns if c not in df.columns]
+        if missing:
+            raise ValueError(f"Columns not found in the DataFrame: {missing}.")
+        return list(self.selected_columns)
 
     def _compute_intersections(self, cols: List[str]):
         mask = self.data.mask_missing[cols]
@@ -87,17 +86,30 @@ class _Upset(_Plot):
         if () in counts.index:
             counts = counts.drop(())
 
-        if self.min_intersection_size > 1:
-            counts = counts.loc[lambda s: s >= self.min_intersection_size]
+        if _MIN_INTERSECTION_SIZE > 1:
+            counts = counts.loc[lambda s: s >= _MIN_INTERSECTION_SIZE]
 
         if counts.empty:
-            raise ValueError("No missingness intersections found for selected columns.")
+            raise ValueError(
+                f"None of {cols} are ever missing together, so there are no "
+                f"intersections to draw. upset() compares missingness patterns, so it "
+                f"needs columns that have missing values."
+            )
 
-        if self.order == "asc":
+        if self.ascending:
             counts = counts.sort_values(ascending=True)
 
-        if self.max_intersections > 0:
-            counts = counts.head(self.max_intersections)
+        if len(counts) > _MAX_INTERSECTIONS:
+            # Drawing the top 20 of 300 without saying so reads as "these are all the
+            # patterns", which is the opposite of what the plot is for.
+            warnings.warn(
+                f"{len(counts)} missingness intersections found across {len(cols)} "
+                f"columns; drawing the {_MAX_INTERSECTIONS} largest. Pass fewer "
+                f"columns in selected_columns to see all of them.",
+                UserWarning,
+                stacklevel=2,
+            )
+            counts = counts.head(_MAX_INTERSECTIONS)
 
         return counts
 
@@ -118,7 +130,23 @@ class _Upset(_Plot):
         label_map = dict(zip(set_labels_full, set_labels_display))
 
         subsets = list(intersection_counts.index)
-        intersection_values = intersection_counts.values.tolist()
+        # measure means the same here as on venn(), bar() and rate(): one option
+        # covering absolute counts and the two relative forms. The scaling applies to
+        # both bar panels, so the intersection sizes and the set sizes stay on one
+        # scale and remain comparable.
+        rows = max(len(self.data.data), 1)
+        if self.measure == "percentage":
+            scale, value_fmt = 100.0 / rows, "{:.2f}%"
+            intersection_title, set_title = "Percent of rows", "Percent of rows"
+        elif self.measure == "fraction":
+            scale, value_fmt = 1.0 / rows, "{:.2f}"
+            intersection_title, set_title = "Fraction of rows", "Fraction of rows"
+        else:
+            scale, value_fmt = 1.0, "{:.0f}"
+            intersection_title, set_title = "Rows", "Missing rows"
+
+        intersection_values = [v * scale for v in intersection_counts.values.tolist()]
+        set_values = [v * scale for v in set_sizes.values.tolist()]
         intersection_labels = [", ".join(s) for s in subsets]
         n_intersections = len(subsets)
 
@@ -138,36 +166,39 @@ class _Upset(_Plot):
             x=x_positions,
             y=intersection_values,
             marker_color=self.missing_color,
-            text=[str(v) if self.show_values else None for v in intersection_values],
+            text=[value_fmt.format(v) if self.show_values else None for v in intersection_values],
             textposition="outside" if self.show_values else None,
-            hovertemplate=(
-                "<b>Missing columns</b>: %{customdata}<br><b>Rows</b>: %{y}<extra></extra>"
+            # Same shape as venn(): name the region, then say how big it is in both
+            # forms, so the reading does not depend on which measure is set.
+            hovertemplate=_hover.build(
+                _hover.title("%{customdata[0]}"),
+                "%{customdata[1]}",
             ),
-            customdata=intersection_labels,
+            customdata=_hover.customdata(
+                intersection_labels,
+                [_hover.rows_of_total(v, rows) for v in intersection_counts.values],
+            ),
             row=1,
             col=2,
         )
 
-        bar_colors = None
-        if self.highlight_columns:
-            highlight_set = set(self.highlight_columns)
-            highlight = self.highlight_color or self.missing_color
-            bar_colors = [
-                highlight if label in highlight_set else self.missing_color
-                for label in set_labels_full
-            ]
-
         fig.add_bar(
-            x=set_sizes.values.tolist(),
+            x=set_values,
             y=set_labels_display,
             orientation="h",
-            marker_color=bar_colors if bar_colors is not None else self.missing_color,
+            marker_color=self.missing_color,
             width=0.75,
-            text=[str(int(v)) if self.show_values else None for v in set_sizes.values],
+            text=[value_fmt.format(v) if self.show_values else None for v in set_values],
             textposition="outside" if self.show_values else None,
-            textfont=dict(size=16),
             cliponaxis=False,
-            hovertemplate=("<b>Column</b>: %{y}<br><b>Missing</b>: %{x}<extra></extra>"),
+            hovertemplate=_hover.build(
+                _hover.title("%{customdata[0]}"),
+                "NA: %{customdata[1]}",
+            ),
+            customdata=_hover.customdata(
+                set_labels_full,
+                [_hover.rows_of_total(v, rows) for v in set_sizes.values],
+            ),
             row=2,
             col=1,
         )
@@ -187,13 +218,10 @@ class _Upset(_Plot):
             included = [label_map[label] for label in included_full]
             excluded = [label_map[label] for label in excluded_full]
 
-            for full_label, display_label in zip(included_full, included):
+            for display_label in included:
                 included_x.append(idx)
                 included_y.append(display_label)
-                if self.highlight_columns and full_label in self.highlight_columns:
-                    included_colors.append(self.highlight_color or self.missing_color)
-                else:
-                    included_colors.append(self.missing_color)
+                included_colors.append(self.missing_color)
             for display_label in excluded:
                 excluded_x.append(idx)
                 excluded_y.append(display_label)
@@ -206,7 +234,7 @@ class _Upset(_Plot):
             x=excluded_x,
             y=excluded_y,
             mode="markers",
-            marker=dict(size=self.matrix_dot_size, color=self.excluded_dot_color),
+            marker=dict(size=_DOT_SIZE, color=_EXCLUDED_DOT_COLOR),
             hoverinfo="skip",
             row=2,
             col=2,
@@ -216,7 +244,7 @@ class _Upset(_Plot):
                 x=line_x,
                 y=line_y,
                 mode="lines",
-                line=dict(color=self.missing_color, width=self.matrix_line_width),
+                line=dict(color=self.missing_color, width=_LINE_WIDTH),
                 hoverinfo="skip",
                 row=2,
                 col=2,
@@ -226,10 +254,10 @@ class _Upset(_Plot):
             y=included_y,
             mode="markers",
             marker=dict(
-                size=self.matrix_dot_size,
+                size=_DOT_SIZE,
                 color=included_colors if included_colors else self.missing_color,
             ),
-            hovertemplate="<b>Columns</b>: %{customdata}<extra></extra>",
+            hovertemplate=_hover.build(_hover.title("%{customdata}")),
             customdata=[intersection_labels[x - 1] for x in included_x],
             row=2,
             col=2,
@@ -272,6 +300,11 @@ class _Upset(_Plot):
             x_range = [0.5, n_intersections + 0.5]
             fig.update_xaxes(range=x_range, row=1, col=2)
             fig.update_xaxes(range=x_range, row=2, col=2)
+
+        # measure changes what the bars mean, so the axes have to say which it is.
+        # Nothing labelled them before, which left "4" and "0.20" looking alike.
+        fig.update_yaxes(title_text=intersection_title, row=1, col=2)
+        fig.update_xaxes(title_text=set_title, row=2, col=1)
 
         max_val = max(intersection_values) if intersection_values else 0
         if max_val > 0:

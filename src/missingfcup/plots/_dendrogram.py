@@ -3,12 +3,21 @@ from typing import List, Literal, Optional
 import numpy as np
 import plotly.graph_objects as go
 from scipy.cluster.hierarchy import dendrogram as _scipy_dendrogram
-from scipy.cluster.hierarchy import linkage
+from scipy.cluster.hierarchy import linkage as _scipy_linkage
 from scipy.spatial.distance import squareform
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
+
+# The tree is the whole plot, so its lines are drawn heavy enough to read as
+# structure rather than as annotation.
+_LINE_WIDTH = 3.0
+
+# The tree carries no missing/present meaning -- it is structure, not data -- so it
+# is drawn in a neutral colour that stays out of the package's red/green vocabulary.
+_LINE_COLOR = "#4C78A8"
 
 
 class _Dendrogram(_Plot):
@@ -21,35 +30,28 @@ class _Dendrogram(_Plot):
         data: MissingData,
         *,
         selected_columns: Optional[List[str]] = None,
-        ignore_high_missingness: bool = True,
-        high_missingness_threshold: float = 0.9,
-        max_columns: int = 30,
+        high_missingness_threshold: Optional[float] = None,
+        max_columns: int = 0,
         drop_constant_columns: bool = False,
-        linkage_method: Literal[
+        linkage: Literal[
             "single", "complete", "average", "weighted", "centroid", "median", "ward"
         ] = "average",
         use_abs_correlation: bool = False,
-        line_width: int = 2,
-        line_color: str = "#4C78A8",
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
-        self.ignore_high_missingness = ignore_high_missingness
         self.high_missingness_threshold = high_missingness_threshold
         self.max_columns = max_columns
         self.drop_constant_columns = drop_constant_columns
-        self.linkage_method = linkage_method
+        self.linkage = linkage
         self.use_abs_correlation = use_abs_correlation
-        self.line_width = line_width
-        self.line_color = line_color
 
     def _build_figure(self) -> go.Figure:
         cols = select_columns(
             self.data,
             self.selected_columns,
-            ignore_high_missingness=self.ignore_high_missingness,
             high_missingness_threshold=self.high_missingness_threshold,
             drop_constant=self.drop_constant_columns,
             max_columns=self.max_columns,
@@ -72,7 +74,7 @@ class _Dendrogram(_Plot):
         np.fill_diagonal(distance.values, 0.0)
 
         condensed = squareform(distance.values, checks=False)
-        linkage_matrix = linkage(condensed, method=self.linkage_method)
+        linkage_matrix = _scipy_linkage(condensed, method=self.linkage)
         dendro = _scipy_dendrogram(
             linkage_matrix,
             labels=list(distance.columns),
@@ -86,14 +88,25 @@ class _Dendrogram(_Plot):
                     x=xs,
                     y=ys,
                     mode="lines",
-                    line=dict(color=self.line_color, width=self.line_width),
-                    hoverinfo="skip",
+                    line=dict(color=_LINE_COLOR, width=_LINE_WIDTH),
+                    # The height of a join is the only number this plot encodes and
+                    # no axis tick lands on it, so without a tooltip it is unreadable.
+                    hovertemplate=_hover.build(
+                        _hover.title("Merge"),
+                        "Distance: %{y:.2f}",
+                    ),
                     showlegend=False,
                 )
             )
 
-        labels = dendro["ivl"]
+        labels = self._truncate_labels(list(dendro["ivl"]))
         leaf_positions = list(range(5, 10 * len(labels) + 5, 10))
+
+        # scipy places leaves at 5, 15, 25, ... so the first and last sit half a
+        # step from the data edge. Pad by that same half step, and leave headroom
+        # above the tallest join.
+        half_step = 5
+        max_height = max((y for ys in dendro["dcoord"] for y in ys), default=1.0)
 
         fig.update_layout(
             xaxis=dict(
@@ -102,9 +115,11 @@ class _Dendrogram(_Plot):
                 ticktext=labels,
                 tickangle=-45,
                 title="Column",
+                range=[leaf_positions[0] - half_step, leaf_positions[-1] + half_step],
             ),
             yaxis=dict(
                 title="Distance",
+                range=[0, max_height * 1.08],
             ),
         )
 

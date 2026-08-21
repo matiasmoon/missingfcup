@@ -4,6 +4,7 @@ import pandas as pd
 
 from missingfcup.core.missing_data import MissingData
 from missingfcup.plots._association_heatmap import _AssociationHeatmap
+from missingfcup.plots._selection import unusable_columns_error
 
 
 class _HeatmapBiserial(_AssociationHeatmap):
@@ -34,7 +35,7 @@ class _HeatmapBiserial(_AssociationHeatmap):
     def _matrix(self) -> pd.DataFrame:
         corr = self.data.value_missing_corr.copy()
 
-        if self.ignore_high_missingness:
+        if self.high_missingness_threshold is not None:
             miss_rate = self.data.col_missing_rate
             keep_rows = [
                 c for c in corr.index if miss_rate.get(c, 0.0) < self.high_missingness_threshold
@@ -48,14 +49,24 @@ class _HeatmapBiserial(_AssociationHeatmap):
         if value_cols is not None:
             value_cols = [c for c in value_cols if c in corr.index]
             if not value_cols:
-                raise ValueError("No selected_value_columns found in DataFrame.")
+                raise unusable_columns_error(
+                    "selected_value_columns",
+                    self.selected_value_columns or self.selected_columns,
+                    corr.index,
+                    self.data.columns,
+                )
             corr = corr.loc[value_cols, :]
 
         missing_cols = self.selected_missing_columns or self.selected_columns
         if missing_cols is not None:
             missing_cols = [c for c in missing_cols if c in corr.columns]
             if not missing_cols:
-                raise ValueError("No selected_missing_columns found in DataFrame.")
+                raise unusable_columns_error(
+                    "selected_missing_columns",
+                    self.selected_missing_columns or self.selected_columns,
+                    corr.columns,
+                    self.data.columns,
+                )
             corr = corr.loc[:, missing_cols]
 
         if self.drop_constant_columns:
@@ -71,8 +82,8 @@ class _HeatmapBiserial(_AssociationHeatmap):
             ]
             corr = corr.drop(columns=no_variance_cols, errors="ignore")
 
-        if self.order_by_missingness and not corr.empty:
-            ascending = self.order == "asc"
+        if self.sort_by is not None and not corr.empty:
+            ascending = self.ascending
             miss_rate = self.data.col_missing_rate
 
             ordered_rows = (
@@ -95,25 +106,8 @@ class _HeatmapBiserial(_AssociationHeatmap):
 
         return corr
 
-    def _colorbar_config(self) -> dict:
-        return dict(
-            title=(
-                "Value/missingness correlation"
-                "<br><span style='font-size:10px'>blue = higher values missing | red = higher values present</span>"
-                "<br><span style='font-size:10px'>NaN = non-numeric or constant</span>"
-            ),
-            tickmode="array",
-            tickvals=[-1, 0, 1],
-            ticktext=["Higher values present", "No association", "Higher values missing"],
-        )
+    def _axis_roles(self) -> tuple:
+        return "values of", "missingness of", "Point-biserial association"
 
-    def _hover_template(self) -> str:
-        return (
-            "<b>Value column</b>: %{y}<br>"
-            "<b>Missing column</b>: %{x}<br>"
-            "Association: %{z:.2f}<extra></extra>"
-        )
-
-    def _apply_axes(self, fig) -> None:
-        fig.update_xaxes(tickangle=-45, title_text="Missing column")
-        fig.update_yaxes(tickangle=0, title_text="Value column", title_standoff=15)
+    def _axis_titles(self) -> tuple:
+        return "Missing column", "Value column"

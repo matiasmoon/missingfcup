@@ -15,6 +15,7 @@ Fixture (5 rows x 3 cols), missing marked with `.`:
 import pandas as pd
 import pytest
 
+import missingfcup as mf
 from missingfcup import MissingData
 
 
@@ -96,7 +97,7 @@ def test_totals_plot_data(md):
     """totals() must encode 11 present vs 4 missing cells."""
     fig = md.totals().fig
     bar = fig.data[0]
-    assert list(bar.x) == ["Present", "Missing"]
+    assert list(bar.x) == ["!NA", "NA"]
     assert tuple(bar.y) == (11, 4)
 
 
@@ -104,3 +105,39 @@ def test_rejects_duplicate_columns():
     df = pd.DataFrame([[1, None, 3], [None, 2, 3]], columns=["a", "a", "b"])
     with pytest.raises(ValueError, match="duplicate column"):
         MissingData(df)
+
+
+# Error contract: ValueError when the call cannot produce a meaningful result,
+# TypeError for a wrong dtype or input type, and every message names the offending
+# value and says what would change it.
+
+
+def test_a_missing_column_raises_the_same_type_everywhere():
+    """It used to be KeyError from the metrics and ValueError from the plots, so a
+    caller could not write one except clause for the same mistake."""
+    md = MissingData(mf.sample_data())
+    calls = [
+        lambda: md.mann_whitney_test(x="nope", by="age"),
+        lambda: md.mann_whitney_test(x="age", by="nope"),
+        lambda: md.boxplot(column="nope", missing_column="age").fig,
+        lambda: md.density(column="nope", missing_column="age").fig,
+        lambda: md.scatterplot(x="nope", y="age").fig,
+    ]
+    for call in calls:
+        with pytest.raises(ValueError, match="nope"):
+            call()
+
+
+@pytest.mark.parametrize("threshold", [-0.5, 1.5])
+def test_threshold_errors_report_the_value_given(threshold):
+    md = MissingData(mf.sample_data())
+    for call in (md.columns_above_missing_threshold, md.rows_above_missing_threshold):
+        with pytest.raises(ValueError, match=repr(threshold)):
+            call(threshold)
+
+
+def test_littles_test_error_says_how_to_proceed():
+    """A dead-end message names the failure; a useful one names the way out."""
+    frame = pd.DataFrame({"a": ["x", "y", None], "b": ["p", None, "q"]})
+    with pytest.raises(ValueError, match="numeric_only=False"):
+        MissingData(frame).littles_mcar_test()

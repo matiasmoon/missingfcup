@@ -12,9 +12,9 @@ md = mf.MissingData(df)
 
 panel = Panel(
     [
-        md.matrix(title="Matrix"),
-        md.bar(title="Missing counts"),
-        md.rate(title="Missing rates"),
+        md.matrix(title="Where the gaps are"),
+        md.bar(title="Missing per column"),
+        md.rate(title="Missing rate per column"),
     ],
     title="Missing data overview",
 )

@@ -6,7 +6,7 @@ plot object. This matches how missingno is used (``msno.matrix(df)``)::
     import missingfcup as mf
     mf.matrix(df)
     mf.heatmap(df, kind="predictive")
-    mf.bar(df, measure="rate")
+    mf.bar(df, measure="fraction")
 
 If you work on the same DataFrame more than once, use the ``MissingData`` object
 directly. It caches the masks and metrics, exposes the statistical tests, and composes
@@ -83,14 +83,14 @@ def scatterplot(df: pd.DataFrame, x: str, y: str, **kwargs):
     return MissingData(df).scatterplot(x, y, **kwargs)
 
 
-def density(df: pd.DataFrame, x: str, color_by: str, **kwargs):
+def density(df: pd.DataFrame, column: str, missing_column: str, **kwargs):
     """KDE density split by missingness. See ``MissingData.density``."""
-    return MissingData(df).density(x, color_by, **kwargs)
+    return MissingData(df).density(column, missing_column, **kwargs)
 
 
-def boxplot(df: pd.DataFrame, x: str, color_by: str, **kwargs):
+def boxplot(df: pd.DataFrame, column: str, missing_column: str, **kwargs):
     """Box/violin split by missingness. See ``MissingData.boxplot``."""
-    return MissingData(df).boxplot(x, color_by, **kwargs)
+    return MissingData(df).boxplot(column, missing_column, **kwargs)
 
 
 def parallel_coordinates(df: pd.DataFrame, **kwargs):

@@ -54,7 +54,6 @@ class _Plot(ABC):
         missing_color: str = "#d62728",
         present_color: str = "#2ca02c",
         show_legend: bool = True,
-        legend_title: Optional[str] = None,
         max_label_length: int = 48,
     ):
         self.data = data
@@ -69,7 +68,6 @@ class _Plot(ABC):
         self.present_color = present_color
 
         self.show_legend = show_legend
-        self.legend_title = legend_title
         self.max_label_length = max_label_length
 
         self._figure: Optional[go.Figure] = None
@@ -86,7 +84,6 @@ class _Plot(ABC):
             width=self.width,
             height=self.height,
             showlegend=self.show_legend,
-            legend_title=self.legend_title,
             plot_bgcolor=self.background_color,
             paper_bgcolor=self.background_color,
             font=dict(color=self.text_color) if self.text_color else None,
@@ -120,16 +117,22 @@ class _Plot(ABC):
         out = [truncate(label) for label in labels]
 
         if len(set(out)) < len(out):
+            # Two columns whose names differ only past the cut come out identical, and
+            # plotly treats identical category names as one category. The marker has
+            # to be visible: padding with spaces would make them distinct to plotly
+            # while still reading as duplicates on screen. It also has to come out of
+            # the budget rather than be added on top of it, or the cap is not a cap.
             counts_seen: dict = {}
             adjusted = []
             for label in out:
                 counts_seen[label] = counts_seen.get(label, 0) + 1
                 idx = counts_seen[label]
-                suffix = " ..."
-                base = label
-                if max_len > len(suffix):
-                    base = label[: max_len - len(suffix)]
-                adjusted.append(base + suffix + (" " * (idx - 1)))
+                if idx == 1:
+                    adjusted.append(label)
+                    continue
+                marker = f"~{idx}"
+                keep = max(0, max_len - len(marker)) if max_len > 0 else len(label)
+                adjusted.append(label[:keep] + marker)
             out = adjusted
 
         return out

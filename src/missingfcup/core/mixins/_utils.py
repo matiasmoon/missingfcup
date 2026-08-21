@@ -215,7 +215,12 @@ class _MissingDataUtilsMixin:
             df = df.loc[:, [c for c in df.columns if is_numeric_dtype(df[c])]]
 
         if df.empty or df.shape[1] == 0:
-            raise ValueError("No usable columns for Little's MCAR test.")
+            reason = "none of them are numeric" if numeric_only else "the selection is empty"
+            raise ValueError(
+                f"No usable columns for Little's MCAR test: {reason}. The test "
+                f"compares means across missingness patterns, so it needs numeric "
+                f"columns. Pass numeric_only=False to include the rest."
+            )
 
         x = df.to_numpy(dtype=float)
         mask = ~np.isnan(x)
@@ -226,7 +231,11 @@ class _MissingDataUtilsMixin:
         used_columns = df.columns[col_has_obs].tolist()
 
         if x.shape[1] == 0:
-            raise ValueError("All selected columns are fully missing.")
+            raise ValueError(
+                f"All {df.shape[1]} selected columns are fully missing, so there are "
+                f"no observed values to compare. Little's test needs columns that are "
+                f"at least partly observed."
+            )
 
         mu = np.nanmean(x, axis=0)
 
@@ -247,7 +256,11 @@ class _MissingDataUtilsMixin:
         else:
             complete = mask.all(axis=1)
             if complete.sum() <= 1:
-                raise ValueError("Not enough complete rows to estimate covariance.")
+                raise ValueError(
+                    f"Only {int(complete.sum())} rows have no missing values, which is "
+                    f"too few to estimate a covariance matrix. Pass "
+                    f"use_pairwise_cov=True to estimate it pairwise instead."
+                )
             cov = np.cov(x[complete], rowvar=False, ddof=1)
 
         cov = np.nan_to_num(cov, nan=0.0)
@@ -289,7 +302,11 @@ class _MissingDataUtilsMixin:
         p = x.shape[1]
         df_stat = df_total - p
         if df_stat <= 0:
-            raise ValueError("Degrees of freedom <= 0; not enough information for the test.")
+            raise ValueError(
+                f"Not enough information for Little's test: {patterns_used} missingness "
+                f"pattern(s) across {p} columns give {df_stat} degrees of freedom. The "
+                f"test needs more distinct patterns than columns."
+            )
 
         p_value = self._chi2_sf(chi2, df_stat, max_iter=max_iter, tol=tol)
 
@@ -365,10 +382,12 @@ class _MissingDataUtilsMixin:
         # missingfcup`, and scipy.stats is slow to import for a rarely called test.
         from scipy.stats import mannwhitneyu
 
-        if x not in self.data.columns:
-            raise KeyError(f"Column {x!r} not found in the DataFrame.")
-        if by not in self.data.columns:
-            raise KeyError(f"Column {by!r} not found in the DataFrame.")
+        for name, role in ((x, "x"), (by, "by")):
+            if name not in self.data.columns:
+                raise ValueError(
+                    f"{role}={name!r} is not a column in the DataFrame. "
+                    f"It holds {list(self.data.columns)}."
+                )
 
         values = pd.to_numeric(self.data[x], errors="coerce")
         if values.notna().sum() == 0:

@@ -3,8 +3,15 @@ from typing import List, Literal, Optional
 import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
+
+# The rate strip is one row of cells, so the value written inside a cell has about
+# width/n_columns pixels to live in. Past this many columns the numbers collide into
+# an unreadable smear, and the colour plus the hover carry the reading instead. It is
+# a legibility limit rather than a preference, so it is fixed rather than an option.
+_MAX_COLUMNS_WITH_VALUES = 20
 
 
 class _Rate(_Plot):
@@ -21,85 +28,68 @@ class _Rate(_Plot):
         data: MissingData,
         *,
         selected_columns: Optional[List[str]] = None,
-        ignore_high_missingness: bool = True,
-        high_missingness_threshold: float = 0.9,
-        scale: Literal["fraction", "percentage"] = "fraction",
-        colorscale: str = "Reds",
+        high_missingness_threshold: Optional[float] = None,
+        measure: Literal["fraction", "percentage"] = "fraction",
         show_values: bool = True,
-        max_columns: int = 30,
-        order_by_missingness: bool = True,
-        order: Literal["desc", "asc"] = "desc",
-        value_round: int = 2,
-        show_colorbar: bool = True,
-        max_labels_with_values: int = 20,
+        max_columns: int = 0,
+        sort_by: Optional[Literal["missingness", "alphabetical"]] = "missingness",
+        ascending: bool = False,
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
 
         self.selected_columns = selected_columns
-        self.ignore_high_missingness = ignore_high_missingness
         self.high_missingness_threshold = high_missingness_threshold
-        self.scale = scale
-        self.colorscale = colorscale
+        self.measure = measure
         self.show_values = show_values
         self.max_columns = max_columns
-        self.order_by_missingness = order_by_missingness
-        self.order = order
-        self.value_round = value_round
-        self.show_colorbar = show_colorbar
-        self.max_labels_with_values = max_labels_with_values
+        self.sort_by = sort_by
+        self.ascending = ascending
 
     def _build_figure(self) -> go.Figure:
         cols = select_columns(
             self.data,
             self.selected_columns,
-            ignore_high_missingness=self.ignore_high_missingness,
             high_missingness_threshold=self.high_missingness_threshold,
-            order_by_missingness=self.order_by_missingness,
-            order=self.order,
+            sort_by=self.sort_by,
+            ascending=self.ascending,
             max_columns=self.max_columns,
         )
         if not cols:
-            raise ValueError("No columns available to plot")
+            raise ValueError(
+                f"No columns left to draw out of {len(self.data.columns)}. Check "
+                f"high_missingness_threshold={self.high_missingness_threshold!r} and "
+                f"max_columns={self.max_columns!r}."
+            )
         rates = self.data.col_missing_rate.loc[cols]
 
-        if self.scale == "percentage":
+        if self.measure == "percentage":
             values = rates * 100
-            label = "Missing (%)"
-            text = [[f"{v:.{self.value_round}f}%" for v in values]]
+            text = [[f"{v:.2f}%" for v in values]]
         else:
             values = rates
-            label = "Missing rate"
-            text = [[f"{v:.{self.value_round}f}" for v in values]]
+            text = [[f"{v:.2f}" for v in values]]
 
         labels_display = self._truncate_labels(values.index.tolist())
 
         zmin = 0
         zmax = max(values.max(), 1e-6)
+        suffix = "%" if self.measure == "percentage" else ""
 
-        show_cell_text = self.show_values and len(values) <= self.max_labels_with_values
+        show_cell_text = self.show_values and len(values) <= _MAX_COLUMNS_WITH_VALUES
 
+        counts = self.data.col_missing_count.loc[values.index]
+        total = len(self.data.data)
+        # A template rather than pre-rendered strings, so this plot formats the same
+        # way as every other one instead of having its own copy of the rules.
         customdata = [
             [
                 (
                     name,
-                    f"{val:.{self.value_round}f}%"
-                    if self.scale == "percentage"
-                    else f"{val:.{self.value_round}f}",
+                    _hover.rate(val, self.measure == "percentage"),
+                    _hover.rows_of_total(count, total),
                 )
-                for name, val in zip(values.index, values)
-            ]
-        ]
-
-        hovertext = [
-            [
-                f"<b>Column</b>: {name}<br><b>{label}</b>: "
-                + (
-                    f"{val:.{self.value_round}f}%"
-                    if self.scale == "percentage"
-                    else f"{val:.{self.value_round}f}"
-                )
-                for name, val in zip(values.index, values)
+                for name, val, count in zip(values.index, values, counts)
             ]
         ]
 
@@ -108,17 +98,33 @@ class _Rate(_Plot):
                 z=[values.values],
                 x=labels_display,
                 y=["Missing rate"],
-                colorscale=self.colorscale,
+                # 0 is no missing, the maximum is the most missing, so the scale
+                # runs from bare paper to the colour missingness is drawn in.
+                colorscale=[[0.0, "#ffffff"], [1.0, self.missing_color]],
                 zmin=zmin,
                 zmax=zmax,
                 xgap=1,
                 ygap=1,
                 text=text if show_cell_text else None,
                 texttemplate="%{text}" if show_cell_text else None,
-                showscale=self.show_colorbar,
-                colorbar=dict(title=label) if self.show_colorbar else None,
-                hovertext=hovertext,
-                hovertemplate="%{hovertext}<extra></extra>",
+                showscale=self.show_legend,
+                colorbar=dict(
+                    # Only the ends: the value is written in every cell already.
+                    tickvals=[zmin, zmax],
+                    ticktext=[
+                        f"{zmin:.2f}{suffix}",
+                        f"{zmax:.2f}{suffix}",
+                    ],
+                    len=0.5,
+                    thickness=14,
+                )
+                if self.show_legend
+                else None,
+                hovertemplate=_hover.build(
+                    _hover.title("%{customdata[0]}"),
+                    "NA: %{customdata[1]}",
+                    "%{customdata[2]}",
+                ),
                 customdata=customdata,
             )
         )

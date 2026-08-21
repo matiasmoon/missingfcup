@@ -66,5 +66,7 @@ class _MissingDataColumnsMixin:
             * 0.5: columns missing more than half their values
         """
         if not 0 <= threshold <= 1:
-            raise ValueError("threshold must be between 0 and 1")
+            raise ValueError(
+                f"threshold must be a missing rate between 0 and 1, got {threshold!r}."
+            )
         return self.col_missing_rate.loc[lambda s: s > threshold].index

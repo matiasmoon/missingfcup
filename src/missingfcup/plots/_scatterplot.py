@@ -5,7 +5,23 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
+
+# Fixed presentation: these were options nobody needed to tune, and the plot is
+# designed around these values.
+_POINT_SIZE = 8
+_POINT_OPACITY = 0.7
+
+# A missing value has no coordinate, so it is parked this far below the observed
+# minimum, as a fraction of the observed span. The gap is what separates "missing"
+# from "small" at a glance.
+_OFFSET_GAP = 0.1
+
+# Jitter on the offset band is capped so about three standard deviations still fit
+# inside that gap. Without the cap a large jitter would push missing points up into
+# the observed range, where nothing distinguishes them from real values.
+_MISSING_JITTER_CAP = _OFFSET_GAP / 3
 
 
 class _Scatterplot(_Plot):
@@ -22,32 +38,20 @@ class _Scatterplot(_Plot):
         x: str,
         y: str,
         *,
-        point_size: int = 8,
         axis_padding: float = 0.1,
-        missingness_color_column: Optional[str] = None,
-        point_opacity: float = 0.7,
+        missing_column: Optional[str] = None,
         jitter: float = 0.02,
-        missing_jitter: float = 0.5,
         jitter_seed: int = 42,
         xaxis_range: Optional[list] = None,
         yaxis_range: Optional[list] = None,
         **kwargs,
     ):
-        default_legend_title = (
-            f"{missingness_color_column} missingness"
-            if missingness_color_column is not None
-            else "Status"
-        )
-        legend_title = kwargs.pop("legend_title", default_legend_title)
-        super().__init__(data=data, legend_title=legend_title, **kwargs)
+        super().__init__(data=data, **kwargs)
         self.x = x
         self.y = y
-        self.point_size = point_size
         self.axis_padding = axis_padding
-        self.missingness_color_column = missingness_color_column
-        self.point_opacity = point_opacity
+        self.missing_column = missing_column
         self.jitter = jitter
-        self.missing_jitter = missing_jitter
         self.jitter_seed = jitter_seed
         self.xaxis_range = xaxis_range
         self.yaxis_range = yaxis_range
@@ -55,14 +59,12 @@ class _Scatterplot(_Plot):
     def _prepare_df(self) -> pd.DataFrame:
         df = self.data.data
         if self.x not in df.columns or self.y not in df.columns:
-            raise ValueError(f"Columns '{self.x}' and '{self.y}' must exist")
-        if (
-            self.missingness_color_column is not None
-            and self.missingness_color_column not in df.columns
-        ):
+            absent = [c for c in (self.x, self.y) if c not in df.columns]
             raise ValueError(
-                f"missingness_color_column '{self.missingness_color_column}' not found"
+                f"Columns not found in the DataFrame: {absent}. It holds {list(df.columns)}."
             )
+        if self.missing_column is not None and self.missing_column not in df.columns:
+            raise ValueError(f"missing_column '{self.missing_column}' not found")
         return df
 
     def _validate_numeric(self, df: pd.DataFrame) -> None:
@@ -113,7 +115,7 @@ class _Scatterplot(_Plot):
         if s.empty:
             return 0.0
         span = s.max() - s.min() or 1.0
-        return s.min() - 0.1 * span
+        return s.min() - _OFFSET_GAP * span
 
     def _make_customdata(
         self,
@@ -149,13 +151,13 @@ class _Scatterplot(_Plot):
         y_missing: pd.Series,
         mask: pd.Series,
     ) -> np.ndarray:
-        labels = np.full(mask.sum(), "Present", dtype=object)
+        labels = np.full(mask.sum(), "!NA", dtype=object)
         selected_x_missing = x_missing[mask].to_numpy()
         selected_y_missing = y_missing[mask].to_numpy()
 
-        labels[selected_x_missing & ~selected_y_missing] = f"Missing {self.x}"
-        labels[~selected_x_missing & selected_y_missing] = f"Missing {self.y}"
-        labels[selected_x_missing & selected_y_missing] = "Missing both axes"
+        labels[selected_x_missing & ~selected_y_missing] = f"NA-{self.x}"
+        labels[~selected_x_missing & selected_y_missing] = f"NA-{self.y}"
+        labels[selected_x_missing & selected_y_missing] = "NA-both"
         return labels
 
     def _build_figure(self) -> go.Figure:
@@ -179,24 +181,20 @@ class _Scatterplot(_Plot):
         plot_y[y_missing] = y_offset
 
         if self.jitter > 0:
+            # One pass over every point. Missing rows all share the offset
+            # coordinate, so they need the spread at least as much as tied observed
+            # values do -- but theirs is capped to stay inside the offset gap.
             rng = np.random.default_rng(self.jitter_seed)
             x_span = (x.dropna().max() - x.dropna().min()) or 1.0
             y_span = (y.dropna().max() - y.dropna().min()) or 1.0
-            plot_x = plot_x + rng.normal(0.0, self.jitter * x_span, size=len(plot_x))
-            plot_y = plot_y + rng.normal(0.0, self.jitter * y_span, size=len(plot_y))
+            capped = min(self.jitter, _MISSING_JITTER_CAP)
 
-        if self.missing_jitter > 0:
-            rng = np.random.default_rng(self.jitter_seed + 1)
-            x_span = (x.dropna().max() - x.dropna().min()) or 1.0
-            y_span = (y.dropna().max() - y.dropna().min()) or 1.0
-            jitter_x = self.missing_jitter * 0.05 * x_span
-            jitter_y = self.missing_jitter * 0.05 * y_span
-            if x_missing.any():
-                plot_x = plot_x.copy()
-                plot_x[x_missing] += rng.normal(0.0, jitter_x, size=int(x_missing.sum()))
-            if y_missing.any():
-                plot_y = plot_y.copy()
-                plot_y[y_missing] += rng.normal(0.0, jitter_y, size=int(y_missing.sum()))
+            plot_x = plot_x + rng.normal(
+                0.0, np.where(x_missing, capped, self.jitter) * x_span, size=len(plot_x)
+            )
+            plot_y = plot_y + rng.normal(
+                0.0, np.where(y_missing, capped, self.jitter) * y_span, size=len(plot_y)
+            )
 
         both_present = ~x_missing & ~y_missing
         x_only_missing = x_missing & ~y_missing
@@ -205,17 +203,17 @@ class _Scatterplot(_Plot):
 
         x_display = x.astype(object)
         y_display = y.astype(object)
-        x_display[x_missing] = "Missing"
-        y_display[y_missing] = "Missing"
+        x_display[x_missing] = "NA"
+        y_display[y_missing] = "NA"
 
         fig = go.Figure()
 
-        if self.missingness_color_column is not None:
-            target_missing = missing_mask[self.missingness_color_column]
+        if self.missing_column is not None:
+            target_missing = missing_mask[self.missing_column]
 
             for is_missing, trace_name, trace_color in [
-                (False, "Present", self.present_color),
-                (True, "Missing", self.missing_color),
+                (False, f"!NA-{self.missing_column}", self.present_color),
+                (True, f"NA-{self.missing_column}", self.missing_color),
             ]:
                 mask = target_missing == is_missing
                 if not mask.any():
@@ -231,9 +229,9 @@ class _Scatterplot(_Plot):
                     name=trace_name,
                     marker=dict(
                         color=trace_color,
-                        size=self.point_size,
+                        size=_POINT_SIZE,
                         symbol=self._point_symbols(x_missing, y_missing, mask),
-                        opacity=self.point_opacity,
+                        opacity=_POINT_OPACITY,
                     ),
                     customdata=np.column_stack(
                         [
@@ -243,11 +241,12 @@ class _Scatterplot(_Plot):
                             xy_status,
                         ]
                     ),
-                    hovertemplate=(
-                        f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
-                        f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
-                        f"<b>{self.missingness_color_column}</b>: %{{customdata[2]}}<br>"
-                        "<b>Axes</b>: %{customdata[3]}<extra></extra>"
+                    hovertemplate=_hover.build(
+                        _hover.title(
+                            f"{self.x}: %{{customdata[0]}} \u00b7 {self.y}: %{{customdata[1]}}"
+                        ),
+                        "%{customdata[3]}",
+                        f"{self.missing_column}: %{{customdata[2]}}",
                     ),
                 )
 
@@ -274,18 +273,19 @@ class _Scatterplot(_Plot):
                 x=plot_x[both_present],
                 y=plot_y[both_present],
                 mode="markers",
-                name="Present",
+                name="!NA",
                 marker=dict(
                     color=self.present_color,
-                    size=self.point_size,
+                    size=_POINT_SIZE,
                     symbol="circle",
-                    opacity=self.point_opacity,
+                    opacity=_POINT_OPACITY,
                 ),
                 customdata=self._make_customdata(x_display, y_display, both_present),
-                hovertemplate=(
-                    f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
-                    f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
-                    "<b>Status</b>: Present<extra></extra>"
+                hovertemplate=_hover.build(
+                    _hover.title(
+                        f"{self.x}: %{{customdata[0]}} \u00b7 {self.y}: %{{customdata[1]}}"
+                    ),
+                    "!NA",
                 ),
             )
 
@@ -294,18 +294,19 @@ class _Scatterplot(_Plot):
                 x=plot_x[x_only_missing],
                 y=plot_y[x_only_missing],
                 mode="markers",
-                name=f"Missing {self.x}",
+                name=f"NA-{self.x}",
                 marker=dict(
                     color=self.missing_color,
-                    size=self.point_size,
+                    size=_POINT_SIZE,
                     symbol="x",
-                    opacity=self.point_opacity,
+                    opacity=_POINT_OPACITY,
                 ),
                 customdata=self._make_customdata(x_display, y_display, x_only_missing),
-                hovertemplate=(
-                    f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
-                    f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
-                    f"<b>Status</b>: Missing {self.x}<extra></extra>"
+                hovertemplate=_hover.build(
+                    _hover.title(
+                        f"{self.x}: %{{customdata[0]}} \u00b7 {self.y}: %{{customdata[1]}}"
+                    ),
+                    f"NA-{self.x}",
                 ),
             )
 
@@ -314,18 +315,19 @@ class _Scatterplot(_Plot):
                 x=plot_x[y_only_missing],
                 y=plot_y[y_only_missing],
                 mode="markers",
-                name=f"Missing {self.y}",
+                name=f"NA-{self.y}",
                 marker=dict(
                     color=self.missing_color,
-                    size=self.point_size,
+                    size=_POINT_SIZE,
                     symbol="triangle-down",
-                    opacity=self.point_opacity,
+                    opacity=_POINT_OPACITY,
                 ),
                 customdata=self._make_customdata(x_display, y_display, y_only_missing),
-                hovertemplate=(
-                    f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
-                    f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
-                    f"<b>Status</b>: Missing {self.y}<extra></extra>"
+                hovertemplate=_hover.build(
+                    _hover.title(
+                        f"{self.x}: %{{customdata[0]}} \u00b7 {self.y}: %{{customdata[1]}}"
+                    ),
+                    f"NA-{self.y}",
                 ),
             )
 
@@ -334,18 +336,19 @@ class _Scatterplot(_Plot):
                 x=plot_x[both_missing],
                 y=plot_y[both_missing],
                 mode="markers",
-                name="Missing Both",
+                name="NA-both",
                 marker=dict(
                     color=self.missing_color,
-                    size=self.point_size,
+                    size=_POINT_SIZE,
                     symbol="diamond-open",
-                    opacity=self.point_opacity,
+                    opacity=_POINT_OPACITY,
                 ),
                 customdata=self._make_customdata(x_display, y_display, both_missing),
-                hovertemplate=(
-                    f"<b>{self.x}</b>: %{{customdata[0]}}<br>"
-                    f"<b>{self.y}</b>: %{{customdata[1]}}<br>"
-                    "<b>Status</b>: Missing both<extra></extra>"
+                hovertemplate=_hover.build(
+                    _hover.title(
+                        f"{self.x}: %{{customdata[0]}} \u00b7 {self.y}: %{{customdata[1]}}"
+                    ),
+                    "NA-both",
                 ),
             )
 
