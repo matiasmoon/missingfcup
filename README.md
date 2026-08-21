@@ -47,7 +47,7 @@ writes it to a file, where the extension picks the format (`.html` or `.png`).
 | Call | What it shows |
 |---|---|
 | `matrix()` | Row-by-column map of missing vs present. The first thing to look at. |
-| `bar()` | Missing count per column. `measure="rate"` for the fraction instead. |
+| `bar()` | Missing count per column. `measure="fraction"` for the fraction instead. |
 | `rate()` | Missing rate as one coloured strip. Stays readable on wide datasets. |
 | `totals()` | Present against missing cells for the whole dataset. |
 | `heatmap()` | Correlation between columns' missingness: what goes missing together. |
@@ -57,23 +57,24 @@ writes it to a file, where the extension picks the format (`.html` or `.png`).
 | `venn()` | The 7 exclusive missingness regions of three columns. |
 | `upset()` | Every missingness intersection. Scales past the three that Venn allows. |
 | `scatterplot(x, y)` | Scatter that offsets missing values instead of dropping them. |
-| `density(x, color_by)` | Distribution of `x`, split by whether `color_by` is missing. |
-| `boxplot(x, color_by)` | The same split as boxes or violins. |
+| `density(column, missing_column)` | Distribution of `x`, split by whether `missing_column` is missing. |
+| `boxplot(column, missing_column)` | The same split as boxes or violins. |
 | `parallel_coordinates()` | All columns at once, coloured by one column's missingness. |
 
 <!-- IMAGE 2 — optional gallery strip. Suggested: heatmap + upset + density side by
      side, saved to docs/images/gallery.png. Helps show the range in one glance. -->
 
 Most column-based plots share the same options: `selected_columns` picks what to draw,
-`ignore_high_missingness` drops near-empty columns, `max_columns` caps how many appear,
-and `order` sorts by missing rate.
+`high_missingness_threshold` drops near-empty columns, `max_columns` caps how many
+appear, and `sort_by` with `ascending` orders them, as in pandas.
 
 ```python
-md.bar(selected_columns=["age", "income"], measure="rate").show()
-md.upset(selected_columns=["age", "income", "score", "rating"], max_sets=4).show()
+md.bar(selected_columns=["age", "income"], measure="fraction").show()
+md.upset(selected_columns=["age", "income", "score", "rating"]).show()
 ```
 
-Note `upset()` defaults to `max_sets=3`; raise it to draw more columns than that.
+`venn()` and `upset()` need `selected_columns`: name the three columns to compare for
+`venn()`, and any number of them for `upset()`.
 
 ## Combining plots
 

@@ -12,7 +12,7 @@ where the extension picks the format (`.html` or `.png`).
 | Call | What it shows |
 |---|---|
 | `matrix()` | Row-by-column map of missing vs present. The first thing to look at. |
-| `bar()` | Missing count per column. `measure="rate"` for the fraction instead. |
+| `bar()` | Missing count per column. `measure="fraction"` for the fraction instead. |
 | `rate()` | Missing rate as one coloured strip. Stays readable on wide datasets. |
 | `totals()` | Present against missing cells for the whole dataset. |
 
@@ -41,8 +41,8 @@ This is the part that distinguishes MCAR from MAR and MNAR.
 |---|---|
 | `heatmap(kind="predictive")` | Does *observing* one column predict a gap in another? |
 | `heatmap(kind="biserial")` | Do a column's *values* relate to another column's gaps? |
-| `density(x, color_by)` | Distribution of `x`, split by whether `color_by` is missing. |
-| `boxplot(x, color_by)` | The same split, as boxes or violins. |
+| `density(column, missing_column)` | Distribution of `x`, split by whether `missing_column` is missing. |
+| `boxplot(column, missing_column)` | The same split, as boxes or violins. |
 | `scatterplot(x, y)` | Scatter that offsets missing values instead of dropping them. |
 | `parallel_coordinates()` | All columns at once, coloured by one column's missingness. |
 
@@ -64,13 +64,15 @@ Most column-based plots take the same arguments:
 ```python
 md.bar(
     selected_columns=["age", "income"],   # draw only these
-    ignore_high_missingness=True,         # drop near-empty columns
-    max_columns=20,                       # cap how many appear
-    order="desc",                         # sort by missing rate
+    high_missingness_threshold=0.9,       # drop columns at or above this rate
+    max_columns=20,                       # cap how many appear (0 = no cap)
+    sort_by="missingness",                # or "alphabetical", or None for frame order
+    ascending=False,                      # as in pandas: False puts the emptiest first
 ).show()
 ```
 
-Note `upset()` defaults to `max_sets=3`; raise it to draw more columns than that.
+`upset()` draws every column you name in `selected_columns`; `max_intersections`
+caps how many intersection bars are shown.
 
 ## Combining plots
 
