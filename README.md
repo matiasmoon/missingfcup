@@ -131,6 +131,13 @@ python examples/matrix.py
 [`notebooks/`](notebooks/) holds the fuller analyses: five datasets, each with MCAR, MAR
 and MNAR missingness generated and then diagnosed with this package.
 
+They are published, already run, as part of the documentation site:
+**[Analyses](https://matiasmoon.github.io/missingfcup/notebooks/)**. Read them
+there rather than in the `.ipynb` preview on GitHub. The plots on the site are the real
+interactive figures, with hover and zoom, because it is served as an ordinary web page;
+GitHub's notebook preview strips the JavaScript those figures need and shows blank space
+instead.
+
 ## Development
 
 ```bash
