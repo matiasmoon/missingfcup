@@ -6,6 +6,8 @@ dist/
 
 # Generated documentation site (rebuilt by `make docs`)
 site/
+# mkdocs-jupyter's notebook conversion cache.
+.cache/
 
 # Tool caches. Both pytest and ruff also drop a self-ignoring .gitignore inside
 # these directories, so listing them here is belt and braces, kept for clarity.
@@ -24,3 +26,6 @@ CLAUDE.md
 
 # Generated figures (notebooks write these; examples only show, never save)
 notebooks/**/plots/
+
+# Notebooks staged into the docs site by `make docs-stage`; the originals live in notebooks/.
+docs/notebooks/

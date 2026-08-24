@@ -1,6 +1,6 @@
 # Development tasks. Run `make` on its own for the usual check before a commit.
 
-.PHONY: help all clean lint fmt test build examples notebook-check docs docs-serve
+.PHONY: help all clean lint fmt test build examples notebook-check docs-stage docs docs-serve
 
 help:
 	@echo "make lint        ruff check + format check (no writes)"
@@ -13,6 +13,7 @@ help:
 	@echo "                 execute one analysis notebook against the committed CSVs"
 	@echo "                 (needs the [notebooks] extra; no network access required)"
 	@echo "make docs        build the documentation site into site/"
+	@echo "                 (stages notebooks/ into docs/ first; see docs-stage)"
 	@echo "make docs-serve  serve the docs locally with live reload"
 	@echo "make build       clean, then build the sdist and wheel into dist/"
 	@echo "make clean       remove build artifacts, caches and stray .DS_Store"
@@ -23,7 +24,7 @@ all: lint test
 # Removing build/ before packaging is the point of this target: a stale build/
 # directory is silently reused and can ship files that no longer exist in src/.
 clean:
-	rm -rf build dist site .pytest_cache .ruff_cache
+	rm -rf build dist site docs/notebooks .cache .pytest_cache .ruff_cache
 	find . -name '__pycache__' -type d -prune -exec rm -rf {} +
 	find . -name '*.egg-info' -type d -prune -exec rm -rf {} +
 	find . -name '.DS_Store' -delete
@@ -51,12 +52,28 @@ notebook-check:
 	jupyter nbconvert --to notebook --execute --output-dir "$$(mktemp -d)" \
 	  notebooks/titanic/analysis_multi.ipynb
 
+# mkdocs can only put files that live under docs/ into the nav, so the notebooks are
+# staged in rather than kept in two places. The copy is generated, not committed, and
+# only the analysis notebooks go: the generation notebooks need network access and the
+# data/ and plots/ folders are not part of the reading experience.
+DOCS_NB := docs/notebooks
+
+docs-stage:
+	@rm -rf $(DOCS_NB)
+	@mkdir -p $(DOCS_NB)
+	@cp notebooks/README.md $(DOCS_NB)/README.md
+	@for f in notebooks/*/analysis_*.ipynb; do \
+	  d=$(DOCS_NB)/$$(basename $$(dirname $$f)); \
+	  mkdir -p $$d; cp $$f $$d/; \
+	done
+	@echo "staged $$(find $(DOCS_NB) -name '*.ipynb' | wc -l | tr -d ' ') notebooks into $(DOCS_NB)"
+
 # --strict turns a broken cross-reference or a missing docstring target into an
 # error, so the docs cannot silently rot.
-docs:
+docs: docs-stage
 	mkdocs build --strict
 
-docs-serve:
+docs-serve: docs-stage
 	mkdocs serve
 
 build: clean

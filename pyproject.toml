@@ -63,7 +63,14 @@ notebooks = [
     "ucimlrepo>=0.0.7",
 ]
 # ruff is listed because mkdocstrings uses it to format rendered signatures.
-docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24", "ruff>=0.6"]
+# mkdocs-jupyter renders notebooks/ into the site. It reads the committed outputs
+# rather than re-running them, so the docs build needs no notebook dependencies.
+docs = [
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+    "mkdocs-jupyter>=0.25",
+    "ruff>=0.6",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

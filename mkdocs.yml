@@ -27,9 +27,27 @@ nav:
   - Home: index.md
   - Plots: plots.md
   - API reference: api.md
+  - Analyses:
+      - Overview: notebooks/README.md
+      - Titanic (univariate): notebooks/titanic/analysis_uni.ipynb
+      - Titanic: notebooks/titanic/analysis_multi.ipynb
+      - Breast cancer: notebooks/breast_cancer/analysis_multi.ipynb
+      - Contraceptive method: notebooks/contraceptive_method/analysis_multi.ipynb
+      - Student performance: notebooks/student_performance/analysis_multi.ipynb
+      - Default of credit card clients: notebooks/default_credit/analysis_multi.ipynb
+      - Mechanism variants: notebooks/mechanism_variants/analysis_variants.ipynb
 
 plugins:
   - search
+  # Renders the notebooks in notebooks/ as pages. execute is off on purpose: the
+  # committed outputs are the record of what the analyses produced, and re-running
+  # them here would need the dataset dependencies and several minutes per build.
+  # Because the site is served as ordinary HTML, the Plotly figures stay interactive,
+  # which the .ipynb preview on github.com cannot do -- it strips the scripts.
+  - mkdocs-jupyter:
+      execute: false
+      include_source: true
+      ignore_h1_titles: true
   - mkdocstrings:
       handlers:
         python:
