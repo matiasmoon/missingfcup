@@ -91,6 +91,32 @@ jobs:
       - name: Run tests
         run: make test
 
+  notebooks:
+    # The test suite calls the package directly, so it never notices when a renamed
+    # parameter leaves notebooks/ unable to run. Executing one analysis notebook
+    # against the CSVs committed alongside it is the check that does. It reads only
+    # those CSVs, so this job needs no network access and no generators.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install the package and the notebook dependencies
+        run: pip install -e ".[notebooks]"
+
+      # The notebook saves its panels as PNG, which goes through the same kaleido path
+      # as the export test above.
+      - name: Fetch Chrome for image export
+        run: plotly_get_chrome -y
+
+      - name: Execute a notebook against the committed CSVs
+        run: make notebook-check
+
   build:
     # Builds from a clean checkout, which is what catches a package that only works
     # locally because of a stale build/ directory.

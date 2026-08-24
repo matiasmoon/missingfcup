@@ -1,6 +1,6 @@
 # Development tasks. Run `make` on its own for the usual check before a commit.
 
-.PHONY: help all clean lint fmt test build examples docs docs-serve
+.PHONY: help all clean lint fmt test build examples notebook-check docs docs-serve
 
 help:
 	@echo "make lint        ruff check + format check (no writes)"
@@ -9,6 +9,9 @@ help:
 	@echo "                 (the PNG export test needs a browser; kaleido fetches"
 	@echo "                  one on first use, or run 'plotly_get_chrome -y' first)"
 	@echo "make examples    run every script in examples/ (opens figures)"
+	@echo "make notebook-check"
+	@echo "                 execute one analysis notebook against the committed CSVs"
+	@echo "                 (needs the [notebooks] extra; no network access required)"
 	@echo "make docs        build the documentation site into site/"
 	@echo "make docs-serve  serve the docs locally with live reload"
 	@echo "make build       clean, then build the sdist and wheel into dist/"
@@ -38,6 +41,15 @@ test:
 
 examples:
 	@for f in examples/*.py; do echo "--- $$f"; python "$$f" || exit 1; done
+
+# The notebooks are the only end-to-end use of the public API, so a renamed parameter
+# breaks them silently: the committed outputs still render and nothing fails until
+# someone re-runs one. This executes the smallest analysis notebook against the CSVs
+# already in the repository, which needs no network and catches that drift. The output
+# goes to a temporary directory so the committed notebook is left untouched.
+notebook-check:
+	jupyter nbconvert --to notebook --execute --output-dir "$$(mktemp -d)" \
+	  notebooks/titanic/analysis_multi.ipynb
 
 # --strict turns a broken cross-reference or a missing docstring target into an
 # error, so the docs cannot silently rot.
