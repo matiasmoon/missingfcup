@@ -39,9 +39,9 @@ class _BarBase(_Plot):
         self.show_values = show_values
 
     def _prepare_df(self) -> pd.DataFrame:
-        # Every step is the shared helper's, so the bars filter, order and cap their
-        # columns exactly as the other column plots do, including raising when
-        # nothing the caller named survives.
+        # Every step is the shared helper's, so bars filter, order and cap their
+        # columns exactly as other column plots do, including raising when nothing
+        # the caller named survives.
         cols = select_columns(
             self.data,
             self.selected_columns,

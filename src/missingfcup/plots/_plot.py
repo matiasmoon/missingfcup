@@ -118,10 +118,10 @@ class _Plot(ABC):
 
         if len(set(out)) < len(out):
             # Two columns whose names differ only past the cut come out identical, and
-            # plotly treats identical category names as one category. The marker has
-            # to be visible: padding with spaces would make them distinct to plotly
-            # while still reading as duplicates on screen. It also has to come out of
-            # the budget rather than be added on top of it, or the cap is not a cap.
+            # plotly treats identical category names as one category. Marker must be
+            # visible: padding with spaces would make them distinct to plotly while
+            # still reading as duplicates on screen. It must also come out of the
+            # budget, not be added on top, or the cap is not a cap.
             counts_seen: dict = {}
             adjusted = []
             for label in out:

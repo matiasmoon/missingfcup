@@ -135,7 +135,7 @@ class _Venn(_Plot):
             text=text_values,
             textposition="outside" if self.show_values else None,
             # Count and share regardless of measure: the tooltip has room for both,
-            # so it should not make the reader change measure to see the other one.
+            # so it should never make the reader change measure to see the other.
             hovertemplate=_hover.build(
                 _hover.title("%{customdata[2]}"),
                 "%{customdata[1]}",

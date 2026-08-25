@@ -378,7 +378,7 @@ class _MissingDataUtilsMixin:
         within each ``by`` group (pairwise-complete). Requires at least one
         observed value of ``x`` in each group.
         """
-        # Imported here rather than at module scope: this mixin loads on `import
+        # Imported here, not at module scope: this mixin loads on `import
         # missingfcup`, and scipy.stats is slow to import for a rarely called test.
         from scipy.stats import mannwhitneyu
 

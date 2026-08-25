@@ -9,9 +9,9 @@ from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 
 # Grey, because it marks a cell whose association could not be computed at all,
-# not a value on the scale. It has to sit off the green-white-red ramp entirely:
+# not a value on the scale. Must sit off the green-white-red ramp entirely:
 # painted in missing_color an undefined cell would read as the strongest possible
-# positive association, which is the one reading it must never have.
+# positive association, the one reading it must never have.
 _NAN_COLOR = "#c7c7c7"
 
 
@@ -83,7 +83,7 @@ class _AssociationHeatmap(_Plot):
 
     def _hover_template(self) -> str:
         row_role, col_role, statistic = self._axis_roles()
-        # A role is empty when the axis needs no explaining, as on the symmetric
+        # Role is empty when the axis needs no explaining, as on the symmetric
         # kinds where both axes are the same set of columns.
         row = f"{row_role} %{{y}}".strip()
         col = f"{col_role} %{{x}}".strip()
@@ -155,7 +155,7 @@ class _AssociationHeatmap(_Plot):
                 z=corr_values,
                 x=x_labels,
                 y=y_labels,
-                # The poles of all three kinds are 'more missing' against 'more
+                # Poles of all three kinds are 'more missing' against 'more
                 # present', so they use the same two colours as every other plot.
                 colorscale=[
                     [0.0, self.present_color],

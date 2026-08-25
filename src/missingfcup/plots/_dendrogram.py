@@ -11,12 +11,12 @@ from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
-# The tree is the whole plot, so its lines are drawn heavy enough to read as
-# structure rather than as annotation.
+# Tree is the whole plot, so its lines are drawn heavy enough to read as
+# structure, not annotation.
 _LINE_WIDTH = 3.0
 
-# The tree carries no missing/present meaning -- it is structure, not data -- so it
-# is drawn in a neutral colour that stays out of the package's red/green vocabulary.
+# Tree carries no missing/present meaning -- structure, not data -- so it is drawn
+# in a neutral colour that stays out of the package's red/green vocabulary.
 _LINE_COLOR = "#4C78A8"
 
 
@@ -89,8 +89,8 @@ class _Dendrogram(_Plot):
                     y=ys,
                     mode="lines",
                     line=dict(color=_LINE_COLOR, width=_LINE_WIDTH),
-                    # The height of a join is the only number this plot encodes and
-                    # no axis tick lands on it, so without a tooltip it is unreadable.
+                    # Height of a join is the only number this plot encodes and no
+                    # axis tick lands on it, so without a tooltip it is unreadable.
                     hovertemplate=_hover.build(
                         _hover.title("Merge"),
                         "Distance: %{y:.2f}",
@@ -103,7 +103,7 @@ class _Dendrogram(_Plot):
         leaf_positions = list(range(5, 10 * len(labels) + 5, 10))
 
         # scipy places leaves at 5, 15, 25, ... so the first and last sit half a
-        # step from the data edge. Pad by that same half step, and leave headroom
+        # step from the data edge. Pad by that same half step, leave headroom
         # above the tallest join.
         half_step = 5
         max_height = max((y for ys in dendro["dcoord"] for y in ys), default=1.0)

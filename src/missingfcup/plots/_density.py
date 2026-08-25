@@ -8,9 +8,9 @@ from missingfcup.plots import _hover
 from missingfcup.plots._color import hex_to_rgba
 from missingfcup.plots._plot import _Plot
 
-# How finely the KDE is sampled for drawing. It sets resolution, not shape:
-# the curve is the same continuous function either way, and above a few
-# hundred points a denser grid only makes the figure heavier.
+# How finely the KDE is sampled for drawing. Sets resolution, not shape: the
+# curve is the same continuous function either way, and above a few hundred
+# points a denser grid only makes the figure heavier.
 _CURVE_POINTS = 300
 
 # Low enough that the two curves stay distinguishable where they overlap.
@@ -98,8 +98,8 @@ class _Density(_Plot):
                 fill="tozeroy",
                 fillcolor=hex_to_rgba(color, _FILL_OPACITY),
                 line=dict(color="black", width=1.5),
-                # The y-axis is deliberately unlabelled, so the hover is the only
-                # place a reader can find out how much data is under a curve.
+                # Y-axis is deliberately unlabelled, so the hover is the only place
+                # a reader can find how much data is under a curve.
                 hovertemplate=_hover.build(
                     _hover.title(f"{self.column}: %{{x:,.4~g}}"),
                     name,
@@ -108,9 +108,9 @@ class _Density(_Plot):
             )
 
         fig.update_xaxes(title_text=self.column)  # groups are named in the legend
-        # A KDE integrates to 1 over the column range, so on a wide axis the values land
+        # KDE integrates to 1 over the column range, so on a wide axis values land
         # around 1e-5 and plotly renders them as "60u". The number carries nothing
-        # for the reader: what matters is the shape and where the curves diverge.
+        # for the reader: shape and where the curves diverge is what matters.
         fig.update_yaxes(title_text="Density", showticklabels=False)
         fig.update_layout(dragmode="pan")
         self._apply_base_layout(fig)

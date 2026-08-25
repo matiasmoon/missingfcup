@@ -9,9 +9,9 @@ from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
-# One line per row, so both are set for legibility under overlap rather than to
-# taste: thin enough that crossing lines stay distinguishable, faint enough that
-# a dense band still shows its density.
+# One line per row, so both are set for legibility under overlap, not to taste:
+# thin enough that crossing lines stay distinguishable, faint enough that a dense
+# band still shows its density.
 _LINE_OPACITY = 0.4
 _LINE_WIDTH = 2.0
 
@@ -72,7 +72,7 @@ class _ParallelCoordinates(_Plot):
 
         # Axis adjacency is the whole reading of this plot -- a relationship shows up
         # between neighbouring axes and nowhere else -- so the shared ordering options
-        # matter more here than on a plot whose columns are merely listed.
+        # matter more here than on a plot whose columns are only listed.
         cols = select_columns(
             self.data,
             self.selected_columns,
@@ -159,7 +159,7 @@ class _ParallelCoordinates(_Plot):
             ]
         else:
             # Every line is the same colour, so a legend entry would name a
-            # distinction that is not being drawn.
+            # distinction that is not drawn.
             groups = [
                 (pd.Series(True, index=norm_df.index), None, self.present_color),
             ]

@@ -8,19 +8,19 @@ from missingfcup.core.missing_data import MissingData
 from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 
-# Fixed presentation: these were options nobody needed to tune, and the plot is
-# designed around these values.
+# Fixed presentation: options nobody needed to tune, and the plot is designed
+# around these values.
 _POINT_SIZE = 8
 _POINT_OPACITY = 0.7
 
-# A missing value has no coordinate, so it is parked this far below the observed
-# minimum, as a fraction of the observed span. The gap is what separates "missing"
-# from "small" at a glance.
+# Missing value has no coordinate, so it is parked this far below the observed
+# minimum, as a fraction of the observed span. The gap separates "missing" from
+# "small" at a glance.
 _OFFSET_GAP = 0.1
 
 # Jitter on the offset band is capped so about three standard deviations still fit
 # inside that gap. Without the cap a large jitter would push missing points up into
-# the observed range, where nothing distinguishes them from real values.
+# the observed range, where nothing tells them apart from real values.
 _MISSING_JITTER_CAP = _OFFSET_GAP / 3
 
 

@@ -11,16 +11,16 @@ from missingfcup.plots._color import hex_to_rgba
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
-# Fixed presentation for the border that marks the column ``sort_by`` names. It has
-# to read as an annotation rather than as data, so it is deliberately not one of the
-# plot's colours and not tunable.
+# Fixed presentation for the border marking the column ``sort_by`` names. Must read
+# as annotation, not data, so it is deliberately not one of the plot's colours and
+# not tunable.
 _SORT_BORDER_COLOR = "#1f77b4"
 _SORT_BORDER_WIDTH = 2
 _SORT_BORDER_FILL_OPACITY = 0.08
 
-# Cell separation in pixels. Asymmetric on purpose: a vertical seam separates the
-# columns, which are the unit being compared, while a horizontal one between rows
-# would only shred a tall matrix into stripes.
+# Cell separation in pixels. Asymmetric on purpose: a vertical seam separates
+# columns, the unit being compared, while a horizontal one between rows would only
+# shred a tall matrix into stripes.
 _XGAP = 1
 _YGAP = 0
 
@@ -80,8 +80,8 @@ class _Matrix(_Plot):
         df = self.data.data[cols].copy()
 
         if self.sort_categories is not None and row_column is None:
-            # Otherwise the order would be accepted and quietly ignored, since
-            # nothing is sorting the rows for it to apply to.
+            # Otherwise the order would be accepted and quietly ignored: nothing is
+            # sorting the rows for it to apply to.
             raise ValueError(
                 "sort_categories needs sort_by to name a column whose values it "
                 f"orders. Got sort_by={self.sort_by!r}."
@@ -123,8 +123,8 @@ class _Matrix(_Plot):
         absent = [value for value in declared if value not in present]
         if absent:
             # Not an error: the same order is worth reusing across datasets, and a
-            # value this frame happens to lack is fine. But a typo looks exactly the
-            # same from here and would otherwise reorder nothing and say nothing.
+            # value this frame happens to lack is fine. But a typo looks identical
+            # from here and would otherwise reorder nothing and say nothing.
             warnings.warn(
                 f"sort_categories named {absent}, which {values.name!r} does not "
                 f"contain. It holds {sorted(present, key=repr)}. Those entries order "
@@ -133,11 +133,11 @@ class _Matrix(_Plot):
                 stacklevel=2,
             )
 
-        # Three buckets, always in this order: the values the caller named, then
+        # Three buckets, always in this order: values the caller named, then
         # anything they did not name, then the missing ones. ``ascending`` is not
         # consulted -- the sequence already says which value is first and which is
-        # last, so honouring a direction on top of it would draw the reverse of what
-        # the caller wrote. Reverse the sequence to reverse the plot.
+        # last, so honouring a direction on top would draw the reverse of what the
+        # caller wrote. Reverse the sequence to reverse the plot.
         def bucket(value) -> int:
             if pd.isna(value):
                 return 2
@@ -174,8 +174,8 @@ class _Matrix(_Plot):
         x_positions = list(range(len(df.columns)))
 
         # When sort_by names a column the rows are in that column's order, so the
-        # axis labels it: a row's own value is what says where it sits. Otherwise
-        # there is nothing to label rows with but their index.
+        # axis labels it: a row's own value says where it sits. Otherwise there is
+        # nothing to label rows with but their index.
         sort_column = self._sort_column
         if sort_column and sort_column in df.columns:
 
@@ -213,8 +213,8 @@ class _Matrix(_Plot):
                     _hover.title("%{customdata[0]}  \u00b7  row %{y}"),
                     "%{text}: %{customdata[1]}",
                 ),
-                # Derived from the mask rather than from z, so the label cannot drift
-                # out of step with how z happens to be encoded.
+                # Derived from the mask, not from z, so the label cannot drift out
+                # of step with how z happens to be encoded.
                 text=[["NA" if v else "!NA" for v in row] for row in mask.to_numpy()],
                 customdata=np.stack(
                     [
@@ -237,7 +237,7 @@ class _Matrix(_Plot):
             tickangle=-45,
         )
         # When sort_by names a column the y labels are that column's values, so the
-        # axis is named after it; otherwise the rows are only identified by index.
+        # axis is named after it; otherwise rows are only identified by index.
         fig.update_xaxes(title_text="Column")
         fig.update_yaxes(
             title_text=sort_column if sort_column and sort_column in df.columns else "Row",

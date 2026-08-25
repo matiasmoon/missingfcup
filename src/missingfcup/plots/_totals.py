@@ -44,8 +44,8 @@ class _Totals(_Plot):
                 "%{y:,} of %{customdata[0]:,} cells (%{customdata[1]:.2f}%)",
             ),
             customdata=[[total_cells, present_pct], [total_cells, missing_pct]],
-            # One trace holds both bars, so a legend entry would just read
-            # 'trace 0'. The x-axis already names them.
+            # One trace holds both bars, so a legend entry would read 'trace 0'.
+            # The x-axis already names them.
             showlegend=False,
         )
 

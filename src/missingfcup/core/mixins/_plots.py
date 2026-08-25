@@ -182,7 +182,7 @@ class _MissingDataPlotMixin:
             return _BarCount(**shared, show_both=show_both)
         if measure in ("fraction", "percentage"):
             if show_both:
-                # Dropping it quietly would draw a plain rate bar and look like it
+                # Dropping it quietly would draw a plain rate bar, looking like it
                 # had been honoured.
                 raise ValueError(
                     f"show_both applies to measure='count' only, not "
@@ -950,8 +950,8 @@ class _MissingDataPlotMixin:
                 "for kind='biserial'"
             )
         if kind == "biserial" and show_upper_triangle:
-            # The mask exists because a symmetric matrix says everything twice.
-            # Biserial says nothing twice: its axes are value columns against missing
+            # Mask exists because a symmetric matrix says everything twice.
+            # Biserial says nothing twice: axes are value columns against missing
             # columns, so value(a) vs missing(b) and value(b) vs missing(a) are
             # different questions. Masking by position deletes real associations.
             raise ValueError(

@@ -85,8 +85,8 @@ class _Boxplot(_Plot):
                     y=group_vals,
                     name=name,
                     marker_color=color,
-                    # A box hides its own sample size, which is the first thing to
-                    # check before reading anything into the spread.
+                    # Box hides its own sample size, the first thing to check
+                    # before reading anything into the spread.
                     hovertemplate=_hover.build(
                         _hover.title(f"{self.column}: %{{y:,.4~g}}"),
                         name,

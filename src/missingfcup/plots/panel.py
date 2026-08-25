@@ -98,7 +98,7 @@ class Panel:
             plot_fig = plot.fig
 
             for trace in plot_fig.data:
-                # Deep copy to avoid mutating the original plot's traces
+                # Deep copy so the original plot's traces are not mutated
                 trace_copy = copy.deepcopy(trace)
 
                 trace_copy.showlegend = False

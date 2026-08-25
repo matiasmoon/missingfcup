@@ -8,16 +8,16 @@ from missingfcup.core.missing_data import MissingData
 from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 
-# The membership dots are sized to the matrix, not to taste, and the line joining
-# them has to read as thick as the dots so the intersection scans as one unit.
+# Membership dots are sized to the matrix, not to taste, and the line joining them
+# must read as thick as the dots so the intersection scans as one unit.
 _DOT_SIZE = 12
 _LINE_WIDTH = 3.0
 
-# Grey, because it marks the absence of membership rather than a value: it is the
-# lattice the red dots sit on, and any other colour would compete with them.
+# Grey, because it marks absence of membership, not a value: it is the lattice the
+# red dots sit on, and any other colour would compete with them.
 _EXCLUDED_DOT_COLOR = "#e0e0e0"
 
-# Intersections grow as 2**n, so the bar count has to be capped or a wide selection
+# Intersections grow as 2**n, so the bar count must be capped or a wide selection
 # draws an unreadable comb. Truncation loses information, so it warns rather than
 # trimming quietly. Every intersection that occurs at all is worth drawing, so the
 # size floor is 1 and only the empty intersection is dropped.
@@ -131,9 +131,9 @@ class _Upset(_Plot):
 
         subsets = list(intersection_counts.index)
         # measure means the same here as on venn(), bar() and rate(): one option
-        # covering absolute counts and the two relative forms. The scaling applies to
-        # both bar panels, so the intersection sizes and the set sizes stay on one
-        # scale and remain comparable.
+        # covering absolute counts and the two relative forms. Scaling applies to
+        # both bar panels, so intersection sizes and set sizes stay on one scale and
+        # remain comparable.
         rows = max(len(self.data.data), 1)
         if self.measure == "percentage":
             scale, value_fmt = 100.0 / rows, "{:.2f}%"
@@ -169,7 +169,7 @@ class _Upset(_Plot):
             text=[value_fmt.format(v) if self.show_values else None for v in intersection_values],
             textposition="outside" if self.show_values else None,
             # Same shape as venn(): name the region, then say how big it is in both
-            # forms, so the reading does not depend on which measure is set.
+            # forms, so the reading never depends on which measure is set.
             hovertemplate=_hover.build(
                 _hover.title("%{customdata[0]}"),
                 "%{customdata[1]}",
@@ -301,7 +301,7 @@ class _Upset(_Plot):
             fig.update_xaxes(range=x_range, row=1, col=2)
             fig.update_xaxes(range=x_range, row=2, col=2)
 
-        # measure changes what the bars mean, so the axes have to say which it is.
+        # measure changes what the bars mean, so the axes must say which it is.
         # Nothing labelled them before, which left "4" and "0.20" looking alike.
         fig.update_yaxes(title_text=intersection_title, row=1, col=2)
         fig.update_xaxes(title_text=set_title, row=2, col=1)

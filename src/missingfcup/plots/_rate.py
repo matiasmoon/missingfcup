@@ -7,10 +7,10 @@ from missingfcup.plots import _hover
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
-# The rate strip is one row of cells, so the value written inside a cell has about
+# Rate strip is one row of cells, so the value written inside a cell has about
 # width/n_columns pixels to live in. Past this many columns the numbers collide into
-# an unreadable smear, and the colour plus the hover carry the reading instead. It is
-# a legibility limit rather than a preference, so it is fixed rather than an option.
+# an unreadable smear, and colour plus hover carry the reading instead. Legibility
+# limit, not a preference, so it is fixed rather than an option.
 _MAX_COLUMNS_WITH_VALUES = 20
 
 
@@ -80,8 +80,8 @@ class _Rate(_Plot):
 
         counts = self.data.col_missing_count.loc[values.index]
         total = len(self.data.data)
-        # A template rather than pre-rendered strings, so this plot formats the same
-        # way as every other one instead of having its own copy of the rules.
+        # Template, not pre-rendered strings, so this plot formats the same way as
+        # every other one instead of keeping its own copy of the rules.
         customdata = [
             [
                 (
@@ -98,8 +98,8 @@ class _Rate(_Plot):
                 z=[values.values],
                 x=labels_display,
                 y=["Missing rate"],
-                # 0 is no missing, the maximum is the most missing, so the scale
-                # runs from bare paper to the colour missingness is drawn in.
+                # 0 is no missing, maximum is most missing, so the scale runs from
+                # bare paper to the colour missingness is drawn in.
                 colorscale=[[0.0, "#ffffff"], [1.0, self.missing_color]],
                 zmin=zmin,
                 zmax=zmax,

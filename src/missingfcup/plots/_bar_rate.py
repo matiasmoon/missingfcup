@@ -54,7 +54,7 @@ class _BarRate(_BarBase):
             marker_color=self.missing_color,
             text=text_vals if self.show_values else None,
             textposition="auto" if self.show_values else None,
-            # A rate alone hides how much data is behind it, so the count comes too.
+            # Rate alone hides how much data is behind it, so the count comes too.
             customdata=_hover.customdata(
                 full_names,
                 [_hover.rate(v, self.measure == "percentage") for v in values],

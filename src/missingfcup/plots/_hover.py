@@ -15,7 +15,7 @@ values drawn inside the plots.
 from typing import List, Sequence
 
 # Plotly ends a hover box with a right-hand "trace name" chip unless the template
-# suppresses it. The trace name is already in the legend, so it only adds noise.
+# suppresses it. Trace name is already in the legend, so it only adds noise.
 NO_TRACE_CHIP = "<extra></extra>"
 
 

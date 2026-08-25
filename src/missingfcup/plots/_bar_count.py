@@ -36,8 +36,8 @@ class _BarCount(_BarBase):
         total = len(self.data.data)
 
         def hover(values, state):
-            # The truncated axis label may be an ellipsis, so the tooltip carries
-            # the full name; it is the one place there is room for it.
+            # Truncated axis label may be an ellipsis, so the tooltip carries the
+            # full name: the one place with room for it.
             return dict(
                 customdata=_hover.customdata(
                     full_names, [_hover.rows_of_total(v, total) for v in values]
@@ -70,7 +70,7 @@ class _BarCount(_BarBase):
             )
             fig.update_layout(barmode="stack")
         else:
-            # The missing count is the whole point of the plot; show_both is how a
+            # Missing count is the whole point of the plot; show_both is how a
             # caller asks to see the present side too.
             values = missing_values
             # One series means the legend would repeat what the title already says.
