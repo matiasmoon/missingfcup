@@ -26,6 +26,8 @@ theme:
 nav:
   - Home: index.md
   - Plots: plots.md
+  - Parameters: parameters.md
+  - Choosing a measure: measures.md
   - API reference: api.md
   - Analyses:
       - Overview: notebooks/README.md
