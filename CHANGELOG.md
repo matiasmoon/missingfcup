@@ -87,7 +87,9 @@ interactive Plotly figures)
   from the committed CSVs, so reading them stays available on the declared floor.
 * Documentation site built with MkDocs. The API reference is generated from the
   docstrings by mkdocstrings, so it cannot drift from the code. Build it with
-  `make docs`; it publishes to GitHub Pages from `main`.
+  `make docs`. A workflow builds it on every push to `main` and deploys it to GitHub
+  Pages; the deploy step needs Pages enabled on the repository, and until it is, that
+  job fails while the build that validates the site under `--strict` still runs.
 * The analyses in `notebooks/` are published on that site under **Analyses**, rendered
   by mkdocs-jupyter from their committed outputs. This is the only place the figures
   can be read interactively: the `.ipynb` preview on github.com strips the JavaScript
@@ -322,12 +324,51 @@ interactive Plotly figures)
 * `upset(highlight_columns=...)` no longer fails when `highlight_color` is left unset.
 * `density()` falls back to a histogram when a group has no spread, instead of raising
   `LinAlgError` out of `gaussian_kde`.
+* `venn()` and `upset()` stored `sort_by` and never read it. Only `ascending` was
+  consulted, so the documented default -- `"size"`, descending -- drew the regions in
+  whatever order they happened to be enumerated. `upset()` looked correct by accident,
+  because `value_counts()` returns descending anyway; `venn()` did not, and its bars
+  came out in frame order. `sort_by=None` now genuinely restores enumeration order,
+  which for `upset()` meant reconstructing first-appearance order, since
+  `value_counts()` has already sorted by the time the parameter is read.
+* `upset()` applied its 20-intersection cap before sorting, so `ascending=True` did
+  `sort_values(ascending=True).head(20)` and drew the twenty *smallest* intersections
+  while the warning above it promised the largest. The cap now uses `nlargest` and runs
+  first, which separates the two questions: which intersections are drawn, and what
+  order they appear in.
+* `dendrogram()` raised "not enough columns with varying missingness" from a check that
+  counts columns and never tests variance. Constant columns are only removed when
+  `drop_constant_columns` asks for it, so the message now describes the check that
+  actually ran.
 
 * `bar()`, `bar(measure="rate")`, `rate()`, `venn()`, `dendrogram()` and
   `parallel_coordinates()` labelled the column axis with the name of whichever column
   happened to come first, which read as though the axis were that single column. They
   now use a generic label (`"Column"`, or `"Missing columns"` for `venn()`), and the
   label follows the bars when `orientation="horizontal"`.
+
+**Analyses**
+* The committed outputs in `notebooks/` were rendered before the `venn()` and `upset()`
+  ordering fix above, so the published figures did not match what the code produces.
+  Three plotly builds were represented across the tree at once, and the stack traces in
+  the saved warnings still cited line numbers from a superseded `_upset.py`. Every
+  analysis has been re-executed against the committed CSVs, so the site now shows the
+  sorted regions rather than the enumeration order.
+* `titanic/analysis_multi.ipynb` gave its boxplot panel and its density panel the same
+  title, and a panel's filename is derived from its title, so the second overwrote the
+  first and one figure was missing from `plots/`. The density panel is now suffixed
+  `(Density)`, following the `(Violin)` convention the notebook already used.
+* Four analyses called `.save()` on each parallel-coordinates plot immediately after
+  `panel.save(save_individual=True)`, which writes those same three paths. The
+  duplicate calls are gone.
+* Execution counts across the notebooks started wherever the kernel happened to be --
+  31, 34, 57 -- because each was re-run in a session that already had executions behind
+  it. mkdocs-jupyter renders the prompts, so the published pages opened at `In [31]`.
+  They are renumbered from one, with the `Out [n]` prompts moved in step.
+* `notebooks/README.md` credited `matrix(max_columns=)` to "the four wide datasets".
+  `student_performance` passes `max_columns` to `parallel_coordinates` and draws its
+  matrix uncapped, so the row now says where each call actually appears.
+* Five analyses imported numpy without using it.
 
 ### Notes
 * `MissingData` needs unique column names and a non-empty DataFrame.
