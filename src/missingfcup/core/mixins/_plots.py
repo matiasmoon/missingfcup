@@ -104,8 +104,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ) -> "_Plot":
@@ -155,10 +156,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -185,6 +195,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,
@@ -217,8 +228,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Totals":
         """
@@ -241,10 +253,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -264,6 +285,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -284,8 +306,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Matrix":
         """
@@ -355,10 +378,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -384,6 +416,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -405,8 +438,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ) -> "_Scatterplot":
@@ -457,10 +491,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -489,6 +532,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,
@@ -508,8 +552,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ) -> "_Venn":
@@ -547,10 +592,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -576,6 +630,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,
@@ -595,8 +650,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Upset":
         """
@@ -638,10 +694,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -665,6 +730,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -685,8 +751,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ) -> "_ParallelCoordinates":
@@ -736,10 +803,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -767,6 +843,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,
@@ -783,8 +860,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ) -> "_Density":
@@ -812,10 +890,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -843,6 +930,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,
@@ -869,8 +957,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Plot":
         """
@@ -946,10 +1035,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -1032,6 +1130,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -1065,8 +1164,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Rate":
         """
@@ -1111,10 +1211,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -1141,6 +1250,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -1162,8 +1272,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         max_label_length: int = 48,
     ) -> "_Dendrogram":
         """
@@ -1205,10 +1316,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         max_label_length : int, default 48
             Axis labels longer than this are truncated with an ellipsis, then
             de-duplicated if truncation made two labels identical. 0 falls back to a
@@ -1238,6 +1358,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             max_label_length=max_label_length,
@@ -1254,8 +1375,9 @@ class _MissingDataPlotMixin:
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
         kind: None = None,
@@ -1296,10 +1418,19 @@ class _MissingDataPlotMixin:
             Paper and plot background colour. ``None`` keeps the plotly default.
         text_color : str, optional
             Font colour for the figure. ``None`` keeps the plotly default.
-        missing_color : str, default "#d62728"
-            Colour used to draw missing values.
-        present_color : str, default "#2ca02c"
-            Colour used to draw present values.
+        palette : {"default", "safe", "grayscale"}, default "default"
+            Named colour pair for the present/missing distinction. ``"default"`` is red
+            against green, which is the worst case for red-green colour vision
+            deficiency and measures 1.48:1 in normal vision. ``"safe"`` and
+            ``"grayscale"`` both clear the 3:1 WCAG floor for non-text content under
+            simulated deuteranopia, protanopia and tritanopia; ``"grayscale"`` also
+            survives monochrome printing.
+        missing_color : str, optional
+            Colour used to draw missing values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
+        present_color : str, optional
+            Colour used to draw present values. Overrides the palette for this colour
+            only; ``None``, the default, takes it from ``palette``.
         show_legend : bool, default True
             Whether to draw the legend.
         max_label_length : int, default 48
@@ -1340,6 +1471,7 @@ class _MissingDataPlotMixin:
             height=height,
             background_color=background_color,
             text_color=text_color,
+            palette=palette,
             missing_color=missing_color,
             present_color=present_color,
             show_legend=show_legend,

@@ -227,10 +227,47 @@ figure is usually embedded in something — a notebook with its own theme, a sli
 thesis — and a library that hardcodes white paper is a library that produces figures with
 the wrong background in half of those places.
 
+### `palette`
+
+The named colour pair the whole package speaks in. Three presets: `"default"`, `"safe"`
+and `"grayscale"`.
+
+`"default"` is the red-and-green pair described below, kept because changing it would
+alter every figure already published. It is also the worst case for the two most common
+forms of colour vision deficiency. Measured as a WCAG contrast ratio, its two colours sit
+at 1.48:1 against each other in normal vision — already under the 3:1 floor for non-text
+content — and fall to 1.07:1 under simulated tritanopia, where they are effectively one
+colour.
+
+```python
+md.matrix(palette="safe")        # navy against amber, worst case 4.58:1
+md.matrix(palette="grayscale")   # 7.35:1 flat, and it photocopies
+```
+
+The interesting part is why a different pair of *hues* would not have fixed it. Colour
+vision deficiency collapses hue while leaving lightness intact, so a pair chosen for
+distinguishable hues still fails: the Okabe-Ito orange and blue, the usual recommendation,
+reach 5.29:1 under deuteranopia and 1.09:1 under tritanopia, because those two colours
+carry nearly the same lightness. Both presets here are separated by lightness instead,
+which is what survives every deficiency — and monochrome printing with it, which matters
+because these figures end up in documents.
+
+`tests/test_palette.py` asserts the contrast ratios under simulated deuteranopia,
+protanopia and tritanopia rather than asserting the hex values, so the property the
+presets exist for is the thing the suite protects.
+
 ### `missing_color` and `present_color`
 
-The two colours the whole package speaks in, defaulting to `#d62728` for missing and
-`#2ca02c` for present.
+Override the palette for one colour, leaving the other as the preset gives it. Both
+default to `None`, meaning "take it from `palette`"; passing either explicitly behaves as
+it always did.
+
+```python
+md.matrix(palette="grayscale", missing_color="#08306b")
+```
+
+Under `palette="default"` they resolve to `#d62728` for missing and `#2ca02c` for
+present.
 
 This pair replaced a `colorscale` option, and the replacement is the substantive decision.
 Every pole of every scale in the package is "more missing" against "more present":

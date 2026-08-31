@@ -22,6 +22,7 @@ EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 
 STYLE_OPTIONS = {
     "title",
+    "palette",
     "width",
     "height",
     "background_color",

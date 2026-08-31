@@ -6,6 +6,7 @@ from typing import Optional
 import plotly.graph_objects as go
 
 from missingfcup.core.missing_data import MissingData
+from missingfcup.plots import _palette
 
 
 def _write_figure(fig: go.Figure, path: Optional[str], default_name: str) -> str:
@@ -51,8 +52,9 @@ class _Plot(ABC):
         height: int = 520,
         background_color: Optional[str] = None,
         text_color: Optional[str] = None,
-        missing_color: str = "#d62728",
-        present_color: str = "#2ca02c",
+        palette: str = "default",
+        missing_color: Optional[str] = None,
+        present_color: Optional[str] = None,
         show_legend: bool = True,
         max_label_length: int = 48,
     ):
@@ -64,8 +66,12 @@ class _Plot(ABC):
         self.background_color = background_color
         self.text_color = text_color
 
-        self.missing_color = missing_color
-        self.present_color = present_color
+        # None means "take it from the palette", so an explicit colour still wins and
+        # the preset only fills what the caller left open.
+        self.palette = palette
+        self.missing_color, self.present_color = _palette.resolve(
+            palette, missing_color, present_color
+        )
 
         self.show_legend = show_legend
         self.max_label_length = max_label_length

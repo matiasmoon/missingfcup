@@ -46,3 +46,15 @@ mf.MissingData(banded).matrix(
 ).show()
 # mf.matrix(banded, sort_by="band", sort_categories=["young", "middle", "senior"],
 #           title="Gaps by age band").show()
+
+# The default red/green pair is the worst case for red-green colour vision deficiency:
+# the two colours measure 1.48:1 against each other, and simulated tritanopia drops that
+# to 1.07:1, where they are one colour. palette swaps both at once. "safe" and
+# "grayscale" each clear the 3:1 WCAG floor under every simulated deficiency, and
+# "grayscale" survives being printed in black and white as well.
+md.matrix(palette="safe", title="Colour-vision-safe palette").show()
+md.matrix(palette="grayscale", title="Greyscale, also print-safe").show()
+# mf.matrix(df, palette="safe", title="Colour-vision-safe palette").show()
+
+# An explicit colour still wins, so half a preset can be kept and the other half changed.
+md.matrix(palette="grayscale", missing_color="#08306b", title="Preset, one colour changed").show()

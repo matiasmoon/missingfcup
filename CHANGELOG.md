@@ -11,6 +11,24 @@ First version. Not on PyPI yet.
 
 ### Added
 
+**Accessibility**
+* `palette=` on every plot, taking `"default"`, `"safe"` or `"grayscale"`. The default
+  pair is red against green, which is the worst case for the two most common forms of
+  colour vision deficiency: the two colours measure 1.48:1 against each other in normal
+  vision and 1.07:1 under simulated tritanopia, where they read as one colour. Both new
+  presets clear 3:1, the WCAG floor for non-text content, under normal vision and under
+  simulated deuteranopia, protanopia and tritanopia, and `"grayscale"` survives monochrome
+  printing as well. `tests/test_palette.py` asserts those ratios rather than the hex
+  values, so a colour cannot be adjusted to taste without the floor being rechecked.
+  Separating by *lightness* is what makes this work: colour vision deficiency collapses
+  hue while leaving lightness intact, so a pair chosen for distinguishable hues alone
+  still fails. The Okabe-Ito orange and blue, the usual recommendation, reach 5.29:1 under
+  deuteranopia but 1.09:1 under tritanopia for exactly that reason.
+* `missing_color` and `present_color` now default to `None` and override the palette for
+  one colour only, so a preset can be adopted and half of it adjusted. Passing either
+  explicitly behaves as before.
+* The default palette is unchanged, so every existing figure renders identically.
+
 **Two ways to call it**
 * Flat functions for a quick look: `matrix(df)`, `heatmap(df)`, `bar(df)`, and the rest.
   Each one builds a `MissingData` for you and renders inline in a notebook.
