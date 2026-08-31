@@ -936,3 +936,30 @@ def test_density_handles_a_column_with_no_spread():
     frame = pd.DataFrame({"flat": [5.0] * 10, "other": [1.0, None] * 5})
     fig = MissingData(frame).density(column="flat", missing_column="other").fig
     assert len(fig.data) == 2
+
+
+def test_venn_sort_by_size_orders_the_regions(md):
+    """`sort_by` used to be stored and never read: only `ascending` was consulted, so
+    the documented default ("size", descending) drew the regions in enumeration order."""
+    cols = ["age", "income", "score"]
+    largest_first = md.venn(selected_columns=cols).fig.data[0]
+    smallest_first = md.venn(selected_columns=cols, ascending=True).fig.data[0]
+    unsorted = md.venn(selected_columns=cols, sort_by=None).fig.data[0]
+
+    assert list(largest_first.y) == sorted(largest_first.y, reverse=True)
+    assert list(smallest_first.y) == sorted(smallest_first.y)
+    assert list(unsorted.y) != list(largest_first.y), "sort_by=None must not sort"
+
+
+def test_upset_sort_by_orders_intersections_and_the_cap_keeps_the_largest(md):
+    """Two bugs in one place: `sort_by` was never read, and the cap ran *before* the
+    sort, so `ascending=True` drew the 20 smallest while the warning promised the
+    largest."""
+    cols = ["age", "income", "score", "rating"]
+    descending = md.upset(selected_columns=cols).fig.data[0]
+    ascending = md.upset(selected_columns=cols, ascending=True).fig.data[0]
+
+    assert list(descending.y) == sorted(descending.y, reverse=True)
+    assert list(ascending.y) == sorted(ascending.y)
+    # Same intersections either way; only the order differs.
+    assert sorted(descending.y) == sorted(ascending.y)

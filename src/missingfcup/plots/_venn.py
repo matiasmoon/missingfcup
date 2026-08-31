@@ -94,8 +94,16 @@ class _Venn(_Plot):
         labels_full = [", ".join(s) for s in subsets]
         counts = [subset_count(s) for s in subsets]
 
-        if self.ascending:
-            ordered = sorted(zip(labels_full, counts), key=lambda pair: pair[1])
+        # sort_by decides whether to reorder at all; ascending only decides the
+        # direction, as on every other plot. Reading ascending alone left the
+        # documented default ("size", descending) drawing the regions in the order
+        # they happen to be enumerated.
+        if self.sort_by == "size":
+            ordered = sorted(
+                zip(labels_full, counts),
+                key=lambda pair: pair[1],
+                reverse=not self.ascending,
+            )
             labels_full = [label for label, _ in ordered]
             counts = [count for _, count in ordered]
 

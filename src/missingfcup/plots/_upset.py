@@ -96,9 +96,6 @@ class _Upset(_Plot):
                 f"needs columns that have missing values."
             )
 
-        if self.ascending:
-            counts = counts.sort_values(ascending=True)
-
         if len(counts) > _MAX_INTERSECTIONS:
             # Drawing the top 20 of 300 without saying so reads as "these are all the
             # patterns", which is the opposite of what the plot is for.
@@ -109,7 +106,21 @@ class _Upset(_Plot):
                 UserWarning,
                 stacklevel=2,
             )
-            counts = counts.head(_MAX_INTERSECTIONS)
+            # nlargest, not head: the cap has to keep the largest whatever order was
+            # asked for, or ascending=True would silently draw the 20 *smallest*
+            # while the warning above promised the largest.
+            counts = counts.nlargest(_MAX_INTERSECTIONS)
+
+        # Ordering comes after the cap, so the two are independent: the cap chooses
+        # which intersections are drawn, sort_by chooses the order they appear in.
+        if self.sort_by == "size":
+            counts = counts.sort_values(ascending=self.ascending)
+        else:
+            # None means the order the intersections are enumerated in, which is the
+            # order the patterns first appear in the data. value_counts() has already
+            # sorted by size, so that order has to be restored rather than kept.
+            first_seen = {p: i for i, p in enumerate(dict.fromkeys(pattern_series))}
+            counts = counts.reindex(sorted(counts.index, key=lambda p: first_seen[p]))
 
         return counts
 

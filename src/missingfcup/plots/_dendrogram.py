@@ -59,8 +59,13 @@ class _Dendrogram(_Plot):
         missing_matrix = self.data.mask_missing[cols]
 
         if missing_matrix.shape[1] < 2:
+            # Counts columns rather than testing variance: constant columns are only
+            # removed when drop_constant_columns asked for it, so the message has to
+            # describe the check that actually ran.
             raise ValueError(
-                "Not enough columns with varying missingness to compute the dendrogram."
+                f"Only {missing_matrix.shape[1]} column(s) left to cluster, and a "
+                f"dendrogram needs two. Clustering compares each column's missingness "
+                f"against the others, so it needs at least a pair."
             )
 
         with np.errstate(invalid="ignore", divide="ignore"):
@@ -70,14 +75,16 @@ class _Dendrogram(_Plot):
         if self.use_abs_correlation:
             corr = corr.abs()
 
-        distance = 1.0 - corr
-        np.fill_diagonal(distance.values, 0.0)
+        # to_numpy(copy=True), not .values: fill_diagonal writes in place, and under
+        # pandas 3 .values hands back a read-only view of the block manager.
+        distance = (1.0 - corr).to_numpy(copy=True)
+        np.fill_diagonal(distance, 0.0)
 
-        condensed = squareform(distance.values, checks=False)
+        condensed = squareform(distance, checks=False)
         linkage_matrix = _scipy_linkage(condensed, method=self.linkage)
         dendro = _scipy_dendrogram(
             linkage_matrix,
-            labels=list(distance.columns),
+            labels=list(corr.columns),
             no_plot=True,
         )
 
