@@ -12,6 +12,7 @@ Fixture (5 rows x 3 cols), missing marked with `.`:
  miss 2    2    0      total missing = 4 / 15 cells
 """
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -141,3 +142,41 @@ def test_littles_test_error_says_how_to_proceed():
     frame = pd.DataFrame({"a": ["x", "y", None], "b": ["p", None, "q"]})
     with pytest.raises(ValueError, match="numeric_only=False"):
         MissingData(frame).littles_mcar_test()
+
+
+def test_value_missing_corr_nan_contract():
+    """The matrix is built a row at a time rather than a cell at a time, so the cases
+    that produce NaN have to be pinned: a non-numeric column, a constant column, a
+    fully missing column, and a missingness column whose mask never varies."""
+    frame = pd.DataFrame(
+        {
+            "numeric": [1.0, 2.0, 3.0, 4.0, 5.0],
+            "text": list("abcde"),
+            "constant": [7.0] * 5,
+            "all_nan": [None] * 5,
+            "gappy": [1.0, None, None, 4.0, 5.0],
+        }
+    )
+    corr = MissingData(frame).value_missing_corr
+
+    assert corr.loc["text"].isna().all(), "non-numeric values cannot be correlated"
+    assert corr.loc["constant"].isna().all(), "a constant has no variance"
+    assert corr.loc["all_nan"].isna().all(), "no observed values at all"
+    assert corr["numeric"].isna().all(), "a column that is never missing has no pattern"
+    assert not np.isnan(corr.loc["numeric", "gappy"]), "the one computable cell"
+
+
+def test_value_missing_corr_matches_a_pairwise_pearson():
+    """Equivalence with the per-pair definition it is a vectorised form of."""
+    rng = np.random.default_rng(0)
+    frame = pd.DataFrame(rng.normal(size=(200, 6))).add_prefix("c")
+    frame = frame.mask(rng.random((200, 6)) < 0.3)
+    md = MissingData(frame)
+
+    for value_col in frame.columns:
+        x = frame[value_col]
+        for missing_col in frame.columns:
+            observed = x.notna()
+            expected = x[observed].corr(md.mask_missing[missing_col][observed].astype(float))
+            actual = md.value_missing_corr.loc[value_col, missing_col]
+            assert np.isclose(actual, expected, equal_nan=True)
