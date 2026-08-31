@@ -31,16 +31,24 @@ class MissingData(
     work with any dtype, including categorical, object, and numeric:
 
         matrix, bar, rate, totals, upset, venn, dendrogram,
-        heatmap(kind="correlation"), heatmap(kind="predictive")
+        heatmap(kind="correlation")
+
+    ``heatmap(kind="dependence")`` also takes any dtype, and is the one value-reading
+    plot that does: it measures a categorical column with Cramer's V rather than
+    coercing it to a number first.
 
     Plots that read the actual values need numeric columns:
 
         scatterplot, parallel_coordinates, boxplot, density,
-        heatmap(kind="biserial")
+        heatmap(kind="direction")
 
-    Encode categorical columns before passing to these plots, e.g.::
+    Encode ordinal columns before passing to these plots, e.g.::
 
-        df["col"] = pd.factorize(df["col"])[0]   # ordinal / nominal
+        df["size"] = pd.Categorical(df["size"], categories=["S", "M", "L"]).codes
+
+    Nominal columns have no order to encode, so a correlation against their codes
+    measures an ordering that does not exist and its value changes with the arbitrary
+    numbering. Use ``heatmap(kind="dependence")`` for those instead of factorizing.
 
     ``parallel_coordinates(kind="missingness")`` is an escape hatch that
     renders all columns as binary (present/missing) regardless of dtype.

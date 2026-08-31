@@ -24,7 +24,7 @@ class _Boxplot(_Plot):
         Column whose value distribution is shown on the y-axis.
     missing_column : str
         Column whose missingness splits the two groups.
-    kind : str
+    shape : str
         ``"box"`` for box plots (simpler, shows quartiles and outliers).
         ``"violin"`` for violin plots (also shows the full distribution shape).
 
@@ -40,13 +40,13 @@ class _Boxplot(_Plot):
         column: str,
         missing_column: str,
         *,
-        kind: Literal["box", "violin"] = "box",
+        shape: Literal["box", "violin"] = "box",
         **kwargs,
     ):
         super().__init__(data=data, **kwargs)
         self.column = column
         self.missing_column = missing_column
-        self.kind = kind
+        self.shape = shape
 
     def _validate(self) -> None:
         df = self.data.data
@@ -71,7 +71,7 @@ class _Boxplot(_Plot):
         present_vals = values[~is_missing].dropna()
         missing_vals = values[is_missing].dropna()
 
-        TraceClass = go.Violin if self.kind == "violin" else go.Box
+        TraceClass = go.Violin if self.shape == "violin" else go.Box
 
         fig = go.Figure()
 

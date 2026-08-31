@@ -15,6 +15,7 @@ from pathlib import Path
 
 import pytest
 
+import missingfcup as mf
 from missingfcup import MissingData
 
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
@@ -29,6 +30,14 @@ STYLE_OPTIONS = {
     "present_color",
     "show_legend",
     "max_label_length",
+}
+
+# Parameters that survive in a signature only to raise a message naming their
+# replacement. They are not demonstrable -- passing one is an error -- so they are
+# exempt from the rule that every parameter appears in a runnable example. Each
+# entry must be an argument no call may legitimately pass.
+RETIRED = {
+    ("boxplot", "kind"),
 }
 
 PLOTS = [
@@ -48,7 +57,11 @@ PLOTS = [
 
 
 def parameters_of(plot: str) -> set:
-    return {p for p in inspect.signature(getattr(MissingData, plot)).parameters if p != "self"}
+    return {
+        p
+        for p in inspect.signature(getattr(MissingData, plot)).parameters
+        if p != "self" and (plot, p) not in RETIRED
+    }
 
 
 def keywords_used() -> dict:
@@ -95,3 +108,17 @@ def test_examples_do_not_invent_parameters():
     for plot, used in keywords_used().items():
         unknown = sorted(used - parameters_of(plot))
         assert not unknown, f"{plot}() example passes unknown parameters: {unknown}"
+
+
+@pytest.mark.parametrize("plot,parameter", sorted(RETIRED), ids=lambda v: str(v))
+def test_a_retired_parameter_refuses_every_value(plot, parameter):
+    """The exemption above is only safe while these really are unusable. If one ever
+    starts accepting a value it becomes a real parameter and has to be demonstrated
+    like the rest, so this test fails the moment that happens."""
+    md = MissingData(mf.sample_data())
+    required = {
+        "boxplot": {"column": "income", "missing_column": "age"},
+    }[plot]
+
+    with pytest.raises(ValueError):
+        getattr(md, plot)(**required, **{parameter: "violin"})

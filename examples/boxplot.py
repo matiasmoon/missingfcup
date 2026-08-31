@@ -18,6 +18,9 @@ md.boxplot(
 # mf.boxplot(df, column="income", missing_column="age", title="Income spread, split by gaps in age").show()
 
 md.boxplot(
-    column="income", missing_column="age", kind="violin", title="Income shape, split by gaps in age"
+    column="income",
+    missing_column="age",
+    shape="violin",
+    title="Income shape, split by gaps in age",
 ).show()
-# mf.boxplot(df, column="income", missing_column="age", kind="violin", title="Income shape, split by gaps in age").show()
+# mf.boxplot(df, column="income", missing_column="age", shape="violin", title="Income shape, split by gaps in age").show()

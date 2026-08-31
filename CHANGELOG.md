@@ -26,15 +26,20 @@ First version. Not on PyPI yet.
 * Dataset metrics: `total_missing_rate`, `total_missing_count`.
 * Pattern analysis: `missing_pattern_in_rows`, `missing_pattern_in_rows_unique`,
   `missing_pattern_counts()`, `perfectly_correlated_missing_columns()`.
-* Correlation matrices: `missing_corr`, `present_present_corr`, `present_missing_corr`,
-  `value_missing_corr`.
-* Statistical tests: `littles_mcar_test()`, `mann_whitney_test()`.
+* Association matrices: `missing_corr`, `value_missing_corr` (signed point-biserial),
+  `value_missing_dependence` (unsigned 0-1, Kolmogorov-Smirnov for numeric value columns
+  and Cramer's V for categorical ones, so a nominal column is measured without being
+  correlated against the arbitrary integers its categories were numbered with).
+* Statistical tests: `littles_mcar_test()`, `mann_whitney_test()`, `ks_test()`.
 
 **Plots** (methods on `MissingData`, also available as flat functions; all return
 interactive Plotly figures)
 * `matrix()`: binary row-by-column missingness matrix (nullity matrix).
 * `heatmap(kind=...)`: association between column missingness. `kind="correlation"`
-  (default), `"predictive"`, or `"biserial"`.
+  (default) reads the missingness mask. `kind="direction"` and `kind="dependence"` read
+  observed values against another column's gaps, which is the question MAR is about;
+  the first is signed and the second is an unsigned 0-1 distance from independence,
+  measured by Kolmogorov-Smirnov for numeric columns and Cramer's V for categorical ones.
 * `bar(measure=...)`: per-column missingness bars. `measure="count"` (default) or `"rate"`.
 * `rate()`: the missing rate per column as a single colored row.
 * `totals()`: present vs. missing cells for the whole dataset.
@@ -71,12 +76,26 @@ interactive Plotly figures)
 * scipy is a real requirement now. It was declared required but guarded as optional
   in the dendrogram and density plots; that unreachable fallback code is gone.
 * The `examples` extra is renamed `notebooks`, which is what it is actually for —
-  the example scripts need only the core package. It now includes jupyter (the
-  notebooks import IPython and could not run without it) and drops statsmodels,
-  which nothing used.
+  the example scripts need only the core package. It now holds jupyter and nothing
+  else (the notebooks import IPython and could not run without it), and drops
+  statsmodels, which nothing used.
+* New `generate` extra, holding what only the `gen_*.ipynb` notebooks need: mdatagen
+  to inject the missingness, and seaborn, scikit-learn and ucimlrepo to download the
+  source datasets. No analysis notebook imports any of them. Splitting them out is
+  what lets `notebooks` install on Python 3.9: mdatagen requires 3.10.12 or newer, and
+  one member of an extra failing makes the whole extra uninstallable. The analyses run
+  from the committed CSVs, so reading them stays available on the declared floor.
 * Documentation site built with MkDocs. The API reference is generated from the
   docstrings by mkdocstrings, so it cannot drift from the code. Build it with
   `make docs`; it publishes to GitHub Pages from `main`.
+* The analyses in `notebooks/` are published on that site under **Analyses**, rendered
+  by mkdocs-jupyter from their committed outputs. This is the only place the figures
+  can be read interactively: the `.ipynb` preview on github.com strips the JavaScript
+  Plotly depends on and shows nothing. `make docs` stages the notebooks into `docs/`
+  first, so they live in one place and are copied rather than duplicated.
+* CI runs `make notebook-check`, which executes one analysis notebook against the
+  CSVs committed beside it. The test suite calls the package directly and so never
+  notices when a renamed parameter leaves the notebooks unable to run; this does.
 
 ### Changed
 
@@ -87,7 +106,7 @@ interactive Plotly figures)
 
   | Before | After | Why |
   |---|---|---|
-  | `boxplot(plot_type=)` | `boxplot(kind=)` | `kind` is the package's word for "which variant"; `plot_type` only restated the method name |
+  | `boxplot(plot_type=)` | `boxplot(shape=)` | `plot_type` only restated the method name. It went to `kind` first, then to `shape`: every other `kind` in the package changes what is computed, while box and violin carry identical numbers and differ only in how they are drawn |
   | `parallel_coordinates(missingness_only=)` | `parallel_coordinates(kind="values"\|"missingness")` | it selects a variant, so it belongs on `kind` rather than being the one boolean with no prefix |
   | `matrix(order_categorical=)` | `matrix(sort_categories=)` | joins `sort_by` and `ascending`, so typing `sort_` in an editor offers the whole mechanism |
   | `dendrogram(linkage_method=)` | `dendrogram(linkage=)` | dropped the package's only `_method` suffix; scipy's own argument is just `method` |
@@ -98,7 +117,7 @@ interactive Plotly figures)
 * Legends now appear only when they distinguish something. `bar()`, `bar(measure="rate")`
   and `venn()` draw a single series, so their one-entry legend is off; `bar(show_both=True)`
   still shows both.
-* Colour bars are compact and marked only where it matters: the three heatmaps show
+* Colour bars are compact and marked only where it matters: the heatmaps show
   -1, 0 and 1 rather than every half step, `rate()` shows just its two ends (with a
   `%` when `scale="percentage"`, matching its cells), and all of them share one size.
 * Colour bars carry no title at all. The plot title says what the figure is and the
@@ -130,9 +149,9 @@ interactive Plotly figures)
   and `order_by_border_width` are gone: the border marks which column `sort_by` named,
   so it has to read as an annotation rather than as data, and nothing is gained by
   letting it be recoloured into the plot's own palette.
-* `drop_constant_columns` now defaults to `False` on all three `heatmap()` kinds and
+* `drop_constant_columns` now defaults to `False` on both `heatmap()` kinds and
   on `dendrogram()`, where it previously varied by plot (`False` for correlation and
-  predictive, `True` for biserial, and unset meant "depends"). A column whose
+  correlation, `True` for the value kinds, and unset meant "depends"). A column whose
   missingness never varies includes every column with no missing values, so dropping
   those by default would hide how much of the data is intact. They are still drawn as
   the grey NaN underlay, since their association is genuinely undefined. Pass
@@ -173,7 +192,7 @@ interactive Plotly figures)
   last. `ascending` does not apply -- the sequence already states the direction, so
   reverse the sequence to reverse the plot.
 * `colorscale` is gone. `rate()` runs from bare paper to `missing_color`, and the
-  heatmaps run `present_color` -> white -> `missing_color`. Every pole of all three
+  heatmaps run `present_color` -> white -> `missing_color`. Every pole of both
   heatmap kinds is "more missing" against "more present", so the package now says
   that with the same two colours everywhere instead of a named plotly scale. This
   also corrects the direction: `RdBu` painted +1 (missing together) blue and -1 red.
@@ -262,6 +281,13 @@ interactive Plotly figures)
 
 ### Fixed
 
+* `dendrogram()` raised `ValueError: underlying array is read-only` under pandas 3.
+  It filled the diagonal of its distance matrix in place through `DataFrame.values`,
+  which pandas 3 returns as a read-only view; it now takes an explicit copy. The plot
+  was unusable on any environment resolving to pandas 3, which is Python 3.11 and
+  above. The CI matrix has been extended to 3.13 and 3.14 so that the next such break
+  is caught here rather than by a user: `requires-python` has no upper bound, so pip
+  installs on every release above the floor whether or not it is tested.
 * `bar(selected_columns=["typo"])` drew an empty chart instead of raising. The bar
   charts kept their own copy of the column-selection logic, which skipped the check
   every other plot got from the shared helper; they now use that helper, so the

@@ -16,6 +16,11 @@ if TYPE_CHECKING:
     from missingfcup.plots._upset import _Upset
     from missingfcup.plots._venn import _Venn
 
+# The heatmap kinds that read a column's values rather than its missingness mask.
+# They share an asymmetric shape, so the options and the guards that follow from it
+# apply to both and to neither of the others.
+_VALUE_KINDS = ("direction", "dependence")
+
 
 def _md(mixin: "_MissingDataPlotMixin") -> "MissingData":
     """Narrow the mixin to the concrete class it is always part of.
@@ -52,7 +57,8 @@ class _MissingDataPlotMixin:
     ``*_threshold``     float   a cutoff compared against a rate
     ``*_color``         str     a colour
     ``*_range``         list    an explicit ``[min, max]``
-    ``kind``            choice  which variant of this plot to draw
+    ``kind``            choice  which variant of this plot to **compute**
+    ``shape``           choice  how one computed result is **drawn**
     ``measure``         choice  which quantity to show: count, fraction, percent
     bare noun           any     the one obvious property (``title``, ``width``)
     ==================  ======  ================================================
@@ -66,6 +72,14 @@ class _MissingDataPlotMixin:
     ``ascending`` is a deliberate exception: bare, no prefix, taken verbatim from
     ``DataFrame.sort_values``. Matching pandas is worth more than matching this
     table, and it pairs with ``sort_by`` the way a user already expects.
+
+    ``kind`` and ``shape`` split what used to be one word. ``kind`` changes the
+    result: ``heatmap(kind=)`` picks the statistic and the data it reads, and
+    ``parallel_coordinates(kind=)`` picks between the values and the missingness
+    mask. ``shape`` cannot change any number -- ``boxplot(shape="violin")`` draws
+    the identical data as a violin instead of a box. Spelling both ``kind`` taught
+    a reader to expect a different computation from a parameter that only ever
+    changed the rendering.
 
     A parameter that cannot apply to a given call raises rather than being ignored.
     ``show_both`` on a rate measure, ``show_upper_triangle`` on the asymmetric
@@ -838,7 +852,7 @@ class _MissingDataPlotMixin:
     def heatmap(
         self,
         *,
-        kind: Literal["correlation", "predictive", "biserial"] = "correlation",
+        kind: Literal["correlation", "direction", "dependence"] = "correlation",
         selected_columns: Optional[List[str]] = None,
         high_missingness_threshold: Optional[float] = None,
         show_values: bool = True,
@@ -862,19 +876,29 @@ class _MissingDataPlotMixin:
         """
         Create a missingness association heatmap.
 
-        ``kind="correlation"`` (default): missingness correlation (columns that
-        tend to miss together). ``kind="predictive"``: present-vs-missing
-        correlation (does observing one column predict missingness in another?).
-        ``kind="biserial"``: point-biserial association between the observed
-        values of one column and the missingness of another (a key MAR signal).
+        ``kind="correlation"`` (default) reads the missingness mask alone and shows
+        which columns tend to miss together. The other two read the observed
+        *values* of one column against the missingness of another, which is the MAR
+        question: ``kind="direction"`` gives the signed point-biserial association,
+        so it says which way a relationship runs; ``kind="dependence"`` gives an
+        unsigned 0-1 distance from independence, so it also sees relationships with
+        no direction, such as gaps concentrated at both tails of a column at once.
+
+        ``"correlation"`` cannot separate MAR from MCAR, because it never reads a
+        value. Only the two value kinds can.
 
         ``selected_value_columns`` / ``selected_missing_columns`` apply to
-        ``kind="biserial"`` only.
+        Value kinds only.
 
         Parameters
         ----------
-        kind : {"correlation", "predictive", "biserial"}, default "correlation"
+        kind : {"correlation", "direction", "dependence"}, default "correlation"
             Which association to compute. Selects the plot class that is built.
+            ``"correlation"`` is symmetric and signed, over the missingness mask.
+            ``"direction"`` is asymmetric and signed, values against missingness.
+            ``"dependence"`` is asymmetric and unsigned, on a 0-1 scale, with the
+            statistic chosen by each value column's dtype: Kolmogorov-Smirnov for
+            numeric columns and Cramer's V for categorical ones.
         selected_columns : list of str, optional
             Restrict the plot to these columns. Applied after the
             ``high_missingness_threshold`` filter, so a column dropped there stays
@@ -901,14 +925,14 @@ class _MissingDataPlotMixin:
         show_upper_triangle : bool, default False
             Mask the lower triangle and draw only the upper one, which drops the
             mirrored duplicates a symmetric matrix carries. ``kind="correlation"``
-            and ``kind="predictive"`` only; raises for ``"biserial"``, whose axes
-            mean different things so nothing in it is a duplicate.
+            only; raises for the value kinds, whose axes mean different things so
+            nothing in them is a duplicate.
         selected_value_columns : list of str, optional
-            Columns whose *values* form one axis. ``kind="biserial"`` only; falls back
-            to ``selected_columns``. Passing it for another kind raises ValueError.
+            Columns whose *values* form one axis. Value kinds only; falls back to
+            ``selected_columns``. Passing it for ``"correlation"`` raises ValueError.
         selected_missing_columns : list of str, optional
-            Columns whose *missingness* forms the other axis. ``kind="biserial"`` only;
-            falls back to ``selected_columns``.
+            Columns whose *missingness* forms the other axis. Value kinds only; falls
+            back to ``selected_columns``.
         show_legend : bool, default True
             Whether to draw the colour key beside the plot.
         title : str, optional
@@ -934,36 +958,62 @@ class _MissingDataPlotMixin:
         Returns
         -------
         _Plot
-            A ``_HeatmapCorrelation``, ``_HeatmapPredictive`` or ``_HeatmapBiserial``.
+            A ``_HeatmapCorrelation``, ``_HeatmapDirection`` or ``_HeatmapDependence``.
 
         Raises
         ------
         ValueError
-            If ``kind`` is not one of the three, or if the biserial-only column options
-            are given for another kind.
+            If ``kind`` is not one of the three, or if the value-side column options
+            are given for ``kind="correlation"``.
         """
-        if kind not in ("correlation", "predictive", "biserial"):
+        if kind == "predictive":
+            # Named explicitly because notebooks and scripts written against the
+            # pre-release surface still pass it. It correlated "column i is present"
+            # against "column j is missing", which is the correlation kind with its
+            # sign flipped: the two masks are one fact, so corr(1 - miss_i, miss_j)
+            # == -corr(miss_i, miss_j) for every pair. Same grid, opposite poles.
             raise ValueError(
-                f"kind must be 'correlation', 'predictive', or 'biserial', got {kind!r}"
+                "kind='predictive' has been removed. It computed the 'correlation' "
+                "kind negated -- presence and missingness are the same mask, so it "
+                "carried no separate information. Use kind='correlation' for which "
+                "columns share a gap pattern, or kind='direction' for whether "
+                "observed values explain the gaps, which is the MAR question "
+                "'predictive' was filed under but never answered."
             )
-        if kind != "biserial" and (
+        if kind == "biserial":
+            # Renamed rather than kept as an alias: "biserial" named the statistic,
+            # and the same grid now offers two, so the name no longer identifies
+            # which one you would get.
+            raise ValueError(
+                "kind='biserial' is now kind='direction'. The name described the "
+                "statistic rather than the question, and this grid can now answer it "
+                "two ways: kind='direction' keeps the signed point-biserial reading, "
+                "and kind='dependence' measures any departure from independence, "
+                "including gaps at both tails of a column, which the signed "
+                "statistic reports as zero."
+            )
+        if kind not in _VALUE_KINDS + ("correlation",):
+            raise ValueError(
+                f"kind must be 'correlation', 'direction' or 'dependence', got {kind!r}"
+            )
+        if kind not in _VALUE_KINDS and (
             selected_value_columns is not None or selected_missing_columns is not None
         ):
             raise ValueError(
                 "selected_value_columns / selected_missing_columns are only valid "
-                "for kind='biserial'"
+                "for kind='direction' and kind='dependence'"
             )
-        if kind == "biserial" and show_upper_triangle:
-            # Mask exists because a symmetric matrix says everything twice.
-            # Biserial says nothing twice: axes are value columns against missing
-            # columns, so value(a) vs missing(b) and value(b) vs missing(a) are
-            # different questions. Masking by position deletes real associations.
+        if kind in _VALUE_KINDS and show_upper_triangle:
+            # Mask exists because a symmetric matrix says everything twice. The value
+            # kinds say nothing twice: axes are value columns against missing columns,
+            # so value(a) vs missing(b) and value(b) vs missing(a) are different
+            # questions. Masking by position deletes real associations.
             raise ValueError(
-                "show_upper_triangle applies to the symmetric heatmaps only, not "
-                "kind='biserial'. Its axes carry different meanings (values on one, "
-                "missingness on the other), so no cell mirrors another and hiding "
-                "half of them would drop real associations. Use "
-                "selected_value_columns / selected_missing_columns to narrow it."
+                f"show_upper_triangle applies to the symmetric heatmaps only, not "
+                f"kind={kind!r}. Its axes carry different meanings (values on one, "
+                f"missingness on the other), so no cell mirrors another and hiding "
+                f"half of them would drop real associations. Use "
+                f"selected_value_columns / selected_missing_columns to narrow it."
             )
 
         shared = dict(
@@ -990,14 +1040,10 @@ class _MissingDataPlotMixin:
             from missingfcup.plots._heatmap_correlation import _HeatmapCorrelation
 
             return _HeatmapCorrelation(**shared)
-        if kind == "predictive":
-            from missingfcup.plots._heatmap_predictive import _HeatmapPredictive
+        from missingfcup.plots._heatmap_value import _HeatmapDependence, _HeatmapDirection
 
-            return _HeatmapPredictive(**shared)
-
-        from missingfcup.plots._heatmap_biserial import _HeatmapBiserial
-
-        return _HeatmapBiserial(
+        value_kind = _HeatmapDirection if kind == "direction" else _HeatmapDependence
+        return value_kind(
             **shared,
             selected_value_columns=selected_value_columns,
             selected_missing_columns=selected_missing_columns,
@@ -1202,7 +1248,7 @@ class _MissingDataPlotMixin:
         column: str,
         missing_column: str,
         *,
-        kind: Literal["box", "violin"] = "box",
+        shape: Literal["box", "violin"] = "box",
         title: Optional[str] = None,
         width: int = 900,
         height: int = 520,
@@ -1212,6 +1258,7 @@ class _MissingDataPlotMixin:
         present_color: str = "#2ca02c",
         show_legend: bool = True,
         max_label_length: int = 48,
+        kind: None = None,
     ) -> "_Boxplot":
         """
         Create a box (or violin) plot comparing the distribution of ``column``
@@ -1227,9 +1274,17 @@ class _MissingDataPlotMixin:
             Column whose value distribution to plot on the y-axis.
         missing_column : str
             Column whose missingness splits the two groups (present vs. missing).
-        kind : {"box", "violin"}, default "box"
+        shape : {"box", "violin"}, default "box"
             ``"box"`` shows medians and quartiles; ``"violin"`` also shows the shape of
-            each distribution.
+            each distribution. Both draw the same numbers, so this selects how the
+            distribution is rendered rather than what is computed. It is named
+            ``shape`` and not ``kind`` for that reason: every ``kind`` in this package
+            changes the result, and this one cannot.
+        kind : None
+            The former name of ``shape``. It is accepted only so that passing it
+            raises a message naming the replacement, rather than the bare TypeError
+            an unknown keyword would give. Passing anything but ``None`` is an
+            error; it takes no other value and will be removed.
         title : str, optional
             Title drawn above the figure. Also names the PNG that the toolbar's
             download button writes.
@@ -1261,13 +1316,25 @@ class _MissingDataPlotMixin:
         md.boxplot(column="fare", missing_column="age")
         answers "Do passengers with missing age tend to pay different fares?"
         """
+        if kind is not None:
+            # Accepted purely to say this. Every other `kind` in the package selects
+            # what gets computed, and box against violin selects neither the data nor
+            # the statistic, so it was the one that taught the wrong expectation.
+            raise ValueError(
+                f"boxplot(kind={kind!r}) is now boxplot(shape={kind!r}). The option "
+                f"chooses how one result is drawn, not which result is computed, and "
+                f"`kind` means the latter everywhere else in this package: "
+                f"heatmap(kind=) picks the statistic, parallel_coordinates(kind=) "
+                f"picks between values and the missingness mask."
+            )
+
         from missingfcup.plots._boxplot import _Boxplot
 
         return _Boxplot(
             data=_md(self),
             column=column,
             missing_column=missing_column,
-            kind=kind,
+            shape=shape,
             title=title,
             width=width,
             height=height,

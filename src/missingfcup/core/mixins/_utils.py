@@ -13,12 +13,11 @@ class _MissingDataUtilsMixin:
     """
     Correlation matrices, missingness pattern analysis, and statistical tests.
 
-    Depends on mask_missing and mask_present from _MissingDataCoreMixin,
-    and data from MissingData.__init__, declared here as type hints only.
+    Depends on mask_missing from _MissingDataCoreMixin, and data from
+    MissingData.__init__, declared here as type hints only.
     """
 
     mask_missing: pd.DataFrame
-    mask_present: pd.DataFrame
     data: pd.DataFrame
 
     # Correlation matrices
@@ -33,54 +32,11 @@ class _MissingDataUtilsMixin:
         +1.0 = columns always miss together
          0.0 = missingness is independent
         -1.0 = when one is missing the other is always present
+
+        Correlating the *presence* masks instead returns this same matrix, since
+        corr(1 - x, 1 - y) == corr(x, y), so presence needs no separate metric.
         """
         return self.mask_missing.corr()
-
-    @cached_property
-    def present_present_corr(self) -> pd.DataFrame:
-        """
-        Pearson correlation matrix of column presence masks (present/present).
-
-        Measures whether columns tend to be observed at the same time.
-
-        +1.0 = columns always observed together
-         0.0 = presence is independent
-        -1.0 = when one is observed the other is always missing
-        """
-        return self.mask_present.astype(float).corr()
-
-    @cached_property
-    def present_missing_corr(self) -> pd.DataFrame:
-        """
-        Correlation between present indicators (rows) and missing indicators (columns).
-
-        cell[i, j] = Pearson correlation between "column i is present" and
-        "column j is missing". Reveals whether observing a value in one column
-        predicts missingness in another, a key signal for MAR diagnosis.
-
-        Values are in [-1, 1]; NaN indicates a constant column.
-        """
-        present = self.mask_present.astype(float)
-        missing = self.mask_missing.astype(float)
-
-        corr = pd.DataFrame(
-            index=present.columns,
-            columns=missing.columns,
-            dtype=float,
-        )
-
-        for col_present in present.columns:
-            x = present[col_present]
-            x_std = x.std()
-            for col_missing in missing.columns:
-                y = missing[col_missing]
-                y_std = y.std()
-                if x_std == 0 or y_std == 0:
-                    corr.loc[col_present, col_missing] = np.nan
-                else:
-                    corr.loc[col_present, col_missing] = x.corr(y)
-
-        return corr
 
     @cached_property
     def value_missing_corr(self) -> pd.DataFrame:
@@ -127,6 +83,130 @@ class _MissingDataUtilsMixin:
                 )
 
         return corr
+
+    @cached_property
+    def value_missing_dependence(self) -> pd.DataFrame:
+        """
+        Unsigned association between column values and missingness indicators.
+
+        cell[i, j] = how far column j's missingness departs from independence of
+        column i's observed values, on a 0-1 scale where 0 is independence and 1 is
+        a perfect relationship. Only rows where column i is observed are used.
+
+        The statistic is chosen by column i's dtype, because the right measure of
+        "these are related" differs by what kind of variable it is:
+
+        * numeric i  -> the two-sample Kolmogorov-Smirnov statistic, the largest gap
+          between the distribution of i where j is present and where j is missing.
+        * non-numeric i -> Cramer's V between i's categories and j's missingness.
+
+        Both are unsigned distances from independence on the same 0-1 scale, so a
+        single grid may mix them. This is the companion to :attr:`value_missing_corr`
+        rather than a replacement: that one is signed and says *which way* a
+        relationship runs, at the cost of only seeing relationships that have a
+        direction. This one sees any departure from independence, including
+        missingness concentrated at both tails of a column at once, where the two
+        groups share a mean and a signed correlation reports nothing.
+
+        NaN means column i has too few observed values, or column j's missingness
+        never varies.
+
+        Note that a nominal variable stored as integer codes is read as numeric, so
+        it takes the KS branch. KS still detects the dependence -- it cannot report
+        zero where one exists -- however its magnitude depends on the arbitrary
+        order of the codes, where Cramer's V does not. Store such columns as
+        ``category`` or string to get the label-invariant reading.
+        """
+        missing = self.mask_missing.to_numpy(dtype=bool)
+
+        out = pd.DataFrame(
+            index=self.data.columns,
+            columns=self.mask_missing.columns,
+            dtype=float,
+        )
+
+        for col_val in self.data.columns:
+            series = self.data[col_val]
+            if is_numeric_dtype(series):
+                out.loc[col_val] = self._ks_row(series.to_numpy(dtype=float), missing)
+            else:
+                out.loc[col_val] = self._cramers_v_row(series, missing)
+
+        return out
+
+    @staticmethod
+    def _ks_row(x: np.ndarray, missing: np.ndarray) -> np.ndarray:
+        """KS statistic of ``x`` against every missingness column at once.
+
+        Sorting ``x`` once and walking the two empirical distribution functions
+        together turns a per-pair scipy call into one pass over the sorted mask,
+        which measured ~90x faster on a 30000x24 frame for the same numbers.
+        """
+        valid = ~np.isnan(x)
+        result = np.full(missing.shape[1], np.nan)
+        if valid.sum() < 2:
+            return result
+
+        order = np.argsort(x[valid], kind="mergesort")
+        x_sorted = x[valid][order]
+        mask_sorted = missing[valid][order]
+
+        n_missing = mask_sorted.sum(axis=0)
+        n_present = (~mask_sorted).sum(axis=0)
+        usable = (n_missing > 0) & (n_present > 0)
+        if not usable.any():
+            return result
+
+        # The two distribution functions are only comparable at the end of a run of
+        # equal values: inside a tie the step is not yet complete, and reading it
+        # there would overstate the gap.
+        run_end = np.empty(len(x_sorted), dtype=bool)
+        run_end[:-1] = x_sorted[:-1] != x_sorted[1:]
+        run_end[-1] = True
+
+        with np.errstate(invalid="ignore", divide="ignore"):
+            cdf_missing = np.cumsum(mask_sorted, axis=0) / n_missing
+            cdf_present = np.cumsum(~mask_sorted, axis=0) / n_present
+            gap = np.abs(cdf_present - cdf_missing)[run_end]
+        result[usable] = gap[:, usable].max(axis=0)
+        return result
+
+    @staticmethod
+    def _cramers_v_row(series: pd.Series, missing: np.ndarray) -> np.ndarray:
+        """Cramer's V of a categorical column against every missingness column.
+
+        The missingness side always has two levels, so ``min(rows, cols) - 1`` is 1
+        and V reduces to ``sqrt(chi2 / n)``. Unlike a correlation on category codes,
+        this does not depend on what order the categories were numbered in.
+        """
+        codes, _ = pd.factorize(series, use_na_sentinel=True)
+        valid = codes >= 0
+        result = np.full(missing.shape[1], np.nan)
+        n_valid = int(valid.sum())
+        if n_valid < 2:
+            return result
+
+        codes = codes[valid]
+        n_levels = int(codes.max()) + 1
+        if n_levels < 2:
+            # One category carries no information about anything.
+            return np.where(missing[valid].any(axis=0), 0.0, np.nan)
+
+        row_totals = np.bincount(codes, minlength=n_levels).astype(float)
+        for j in range(missing.shape[1]):
+            column = missing[valid][:, j]
+            n_missing = int(column.sum())
+            if n_missing == 0 or n_missing == n_valid:
+                continue
+            observed_missing = np.bincount(codes[column], minlength=n_levels).astype(float)
+            observed = np.column_stack([row_totals - observed_missing, observed_missing])
+            expected = np.outer(row_totals, np.array([n_valid - n_missing, n_missing])) / n_valid
+            with np.errstate(invalid="ignore", divide="ignore"):
+                terms = np.where(expected > 0, (observed - expected) ** 2 / expected, 0.0)
+            result[j] = math.sqrt(terms.sum() / n_valid)
+        return result
+
+    # Pattern analysis
 
     @cached_property
     def missing_pattern_in_rows(self) -> pd.Series:
@@ -419,6 +499,125 @@ class _MissingDataUtilsMixin:
         return pd.Series(
             {
                 "U": float(u_stat),
+                "p_value": float(p_value),
+                "alpha": alpha,
+                "significant": bool(p_value < alpha),
+                "alternative": alternative,
+                "n_present": int(len(present_group)),
+                "n_missing": int(len(missing_group)),
+                "median_present": float(present_group.median()),
+                "median_missing": float(missing_group.median()),
+                "value_column": x,
+                "missingness_column": by,
+            }
+        )
+
+    def ks_test(
+        self,
+        x: str,
+        by: str,
+        *,
+        alternative: Literal["two-sided", "less", "greater"] = "two-sided",
+        alpha: float = 0.05,
+    ) -> pd.Series:
+        """
+        Two-sample Kolmogorov-Smirnov test comparing the distribution of ``x``
+        between rows where ``by`` is present and rows where ``by`` is missing.
+
+        This asks the same question as :meth:`mann_whitney_test` but measures a
+        different thing, and the difference decides which one finds a given
+        relationship. Mann-Whitney compares stochastic ordering: it detects that
+        one group sits *above* the other. KS compares the two empirical
+        distribution functions at every point and reports their largest gap, so it
+        detects any difference in shape, including ones with no direction.
+
+        That matters because missingness is often concentrated at *both* ends of a
+        column. A sensor that clips at its limits, or a survey question skipped by
+        respondents at either extreme of a scale, produces two groups with the same
+        centre and very different spread. Mann-Whitney and the point-biserial cells
+        of ``heatmap(kind="direction")`` both read that as no relationship; KS does
+        not. Reach for it whenever a location-based test comes back flat on a
+        column you have other reasons to suspect.
+
+        Diagnostic reading:
+
+        * significant (p < alpha) -> the distribution of ``x`` differs between the
+          two groups; missingness in ``by`` is not independent of ``x``, which
+          rules out MCAR with respect to ``x``.
+        * not significant           -> no detectable difference in distribution;
+          consistent with MCAR with respect to ``x`` (absence of evidence, not
+          proof).
+
+        A significant result here with a flat ``mann_whitney_test`` is the
+        signature of a symmetric, two-tailed dependence.
+
+        Parameters
+        ----------
+        x : str
+            Numeric column whose distribution is compared across the two groups.
+        by : str
+            Column whose missingness defines the two groups (present vs. missing).
+        alternative : {"two-sided", "less", "greater"}, default "two-sided"
+            Passed to ``scipy.stats.ks_2samp``. The default is the one to use for
+            diagnosis: the one-sided forms test a signed difference in the
+            distribution functions and so give up the symmetric case that is the
+            reason to prefer this test.
+        alpha : float, default 0.05
+            Significance level used to set the boolean ``significant`` field.
+
+        Returns
+        -------
+        pandas.Series
+            KS statistic (the largest gap between the two distribution functions,
+            in [0, 1]), p-value, alpha, significance flag, per-group sample sizes
+            and medians, and the tested column names.
+
+        Notes
+        -----
+        Only rows where ``x`` is itself observed are used, evaluated separately
+        within each ``by`` group (pairwise-complete). Requires at least one
+        observed value of ``x`` in each group.
+
+        The statistic is unsigned: it says how far apart the two groups are, never
+        which one is higher. That is inherent to what it measures, since a
+        two-tailed difference has no direction to report. Use
+        ``heatmap(kind="direction")`` or ``mann_whitney_test`` when the direction is
+        what you need.
+        """
+        # Imported here, not at module scope: this mixin loads on `import
+        # missingfcup`, and scipy.stats is slow to import for a rarely called test.
+        from scipy.stats import ks_2samp
+
+        for name, role in ((x, "x"), (by, "by")):
+            if name not in self.data.columns:
+                raise ValueError(
+                    f"{role}={name!r} is not a column in the DataFrame. "
+                    f"It holds {list(self.data.columns)}."
+                )
+
+        values = pd.to_numeric(self.data[x], errors="coerce")
+        if values.notna().sum() == 0:
+            raise ValueError(f"Column {x!r} has no usable numeric values.")
+
+        by_missing = self.mask_missing[by]
+        present_group = values[~by_missing].dropna()
+        missing_group = values[by_missing].dropna()
+
+        if len(present_group) == 0 or len(missing_group) == 0:
+            raise ValueError(
+                f"Not enough observed values of {x!r} in both groups of {by!r} "
+                f"(present={len(present_group)}, missing={len(missing_group)})."
+            )
+
+        statistic, p_value = ks_2samp(
+            present_group,
+            missing_group,
+            alternative=alternative,
+        )
+
+        return pd.Series(
+            {
+                "statistic": float(statistic),
                 "p_value": float(p_value),
                 "alpha": alpha,
                 "significant": bool(p_value < alpha),

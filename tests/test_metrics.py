@@ -120,6 +120,8 @@ def test_a_missing_column_raises_the_same_type_everywhere():
     calls = [
         lambda: md.mann_whitney_test(x="nope", by="age"),
         lambda: md.mann_whitney_test(x="age", by="nope"),
+        lambda: md.ks_test(x="nope", by="age"),
+        lambda: md.ks_test(x="age", by="nope"),
         lambda: md.boxplot(column="nope", missing_column="age").fig,
         lambda: md.density(column="nope", missing_column="age").fig,
         lambda: md.scatterplot(x="nope", y="age").fig,
@@ -142,6 +144,59 @@ def test_littles_test_error_says_how_to_proceed():
     frame = pd.DataFrame({"a": ["x", "y", None], "b": ["p", None, "q"]})
     with pytest.raises(ValueError, match="numeric_only=False"):
         MissingData(frame).littles_mcar_test()
+
+
+def test_ks_test_finds_two_tailed_dependence_that_mann_whitney_misses():
+    """The reason `ks_test` exists rather than deferring to `mann_whitney_test`.
+
+    Missingness here is a deterministic function of `age`: `income` is missing exactly
+    when `age` falls in its outer 30%. Both tails are removed, so the two groups have
+    the same centre and Mann-Whitney, which compares stochastic ordering, sees nothing.
+    KS compares the distribution functions themselves and sees it immediately.
+    """
+    rng = np.random.default_rng(1)
+    age = rng.normal(50, 15, 2000)
+    outer = (age < np.percentile(age, 15)) | (age > np.percentile(age, 85))
+    md = MissingData(
+        pd.DataFrame({"age": age, "income": pd.Series(rng.normal(40, 8, 2000)).mask(outer)})
+    )
+
+    assert not md.mann_whitney_test(x="age", by="income")["significant"]
+    ks = md.ks_test(x="age", by="income")
+    assert ks["significant"]
+    assert ks["statistic"] > 0.4
+
+
+def test_ks_test_agrees_with_mann_whitney_on_a_one_sided_shift():
+    """Widening the net must not cost the ordinary case: when the gaps sit at one end
+    only, both tests fire. KS is a superset of what a location test finds, not a
+    different answer."""
+    rng = np.random.default_rng(2)
+    age = rng.normal(50, 15, 2000)
+    md = MissingData(
+        pd.DataFrame({"age": age, "income": pd.Series(rng.normal(40, 8, 2000)).mask(age > 60)})
+    )
+
+    assert md.mann_whitney_test(x="age", by="income")["significant"]
+    assert md.ks_test(x="age", by="income")["significant"]
+
+
+def test_ks_test_is_flat_when_missingness_is_random():
+    """No false positive on MCAR: gaps punched at random leave both groups drawn from
+    the same distribution, so the largest gap between their distribution functions is
+    noise."""
+    rng = np.random.default_rng(3)
+    age = rng.normal(50, 15, 2000)
+    md = MissingData(
+        pd.DataFrame(
+            {
+                "age": age,
+                "income": pd.Series(rng.normal(40, 8, 2000)).mask(rng.random(2000) < 0.3),
+            }
+        )
+    )
+
+    assert not md.ks_test(x="age", by="income")["significant"]
 
 
 def test_value_missing_corr_nan_contract():

@@ -50,9 +50,9 @@ writes it to a file, where the extension picks the format (`.html` or `.png`).
 | `bar()` | Missing count per column. `measure="fraction"` for the fraction instead. |
 | `rate()` | Missing rate as one coloured strip. Stays readable on wide datasets. |
 | `totals()` | Present against missing cells for the whole dataset. |
-| `heatmap()` | Correlation between columns' missingness: what goes missing together. |
-| `heatmap(kind="predictive")` | Does observing one column predict a gap in another? |
-| `heatmap(kind="biserial")` | Do a column's *values* relate to another column's gaps? |
+| `heatmap(kind="correlation")` | Correlation between columns' missingness: what goes missing together. The default. |
+| `heatmap(kind="direction")` | Do a column's *values* relate to another column's gaps, and which way? |
+| `heatmap(kind="dependence")` | The same question, unsigned, so it also catches gaps at both tails. |
 | `dendrogram()` | Clusters columns by missingness correlation. |
 | `venn()` | The 7 exclusive missingness regions of three columns. |
 | `upset()` | Every missingness intersection. Scales past the three that Venn allows. |
@@ -100,6 +100,7 @@ md.missing_corr          # correlation between column missingness patterns
 md.missing_pattern_counts(max_patterns=5)
 md.littles_mcar_test()
 md.mann_whitney_test(x="income", by="age")
+md.ks_test(x="income", by="age")
 ```
 
 The full list of masks, column and row metrics, correlation matrices, pattern analysis

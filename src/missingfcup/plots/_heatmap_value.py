@@ -7,18 +7,20 @@ from missingfcup.plots._association_heatmap import _AssociationHeatmap
 from missingfcup.plots._selection import unusable_columns_error
 
 
-class _HeatmapBiserial(_AssociationHeatmap):
+class _HeatmapValue(_AssociationHeatmap):
     """
-    Heatmap of point-biserial correlations between column values and missingness indicators.
-
-    Each cell [i, j] shows how strongly the observed values of column i associate
-    with column j being missing, the key signal for MAR diagnosis.
+    Shared machinery for the two heatmaps that read a column's *values* against
+    another column's missingness, which is the question MAR is about.
 
     Rows (y-axis): columns whose values are used as predictors.
     Columns (x-axis): columns whose missingness is being predicted.
 
-    The matrix is asymmetric; no triangular masking is applied.
+    The matrix is asymmetric; no triangular masking is applied. Subclasses supply
+    the statistic through ``_source()`` and say whether it is signed.
     """
+
+    def _source(self) -> pd.DataFrame:
+        raise NotImplementedError
 
     def __init__(
         self,
@@ -33,7 +35,7 @@ class _HeatmapBiserial(_AssociationHeatmap):
         self.selected_missing_columns = selected_missing_columns
 
     def _matrix(self) -> pd.DataFrame:
-        corr = self.data.value_missing_corr.copy()
+        corr = self._source().copy()
 
         if self.high_missingness_threshold is not None:
             miss_rate = self.data.col_missing_rate
@@ -83,19 +85,30 @@ class _HeatmapBiserial(_AssociationHeatmap):
             corr = corr.drop(columns=no_variance_cols, errors="ignore")
 
         if self.sort_by is not None and not corr.empty:
-            ascending = self.ascending
-            miss_rate = self.data.col_missing_rate
-
-            ordered_rows = (
-                miss_rate.loc[miss_rate.index.isin(corr.index)]
-                .sort_values(ascending=ascending)
-                .index
-            )
-            ordered_cols = (
-                miss_rate.loc[miss_rate.index.isin(corr.columns)]
-                .sort_values(ascending=ascending)
-                .index
-            )
+            # sort_by names what to order on, so it has to be read as a value rather
+            # than tested for truth: treating it as a flag made "alphabetical" sort by
+            # missing rate, silently, on this kind alone.
+            if self.sort_by not in ("missingness", "alphabetical"):
+                # The other kind gets this from select_columns, which the value
+                # kinds do not use; without it an unknown value would sort by rate.
+                raise ValueError(
+                    f"sort_by must be 'missingness', 'alphabetical' or None, got {self.sort_by!r}."
+                )
+            if self.sort_by == "alphabetical":
+                ordered_rows = sorted(corr.index, reverse=not self.ascending)
+                ordered_cols = sorted(corr.columns, reverse=not self.ascending)
+            else:
+                miss_rate = self.data.col_missing_rate
+                ordered_rows = (
+                    miss_rate.loc[miss_rate.index.isin(corr.index)]
+                    .sort_values(ascending=self.ascending)
+                    .index
+                )
+                ordered_cols = (
+                    miss_rate.loc[miss_rate.index.isin(corr.columns)]
+                    .sort_values(ascending=self.ascending)
+                    .index
+                )
             corr = corr.loc[
                 [c for c in ordered_rows if c in corr.index],
                 [c for c in ordered_cols if c in corr.columns],
@@ -106,8 +119,46 @@ class _HeatmapBiserial(_AssociationHeatmap):
 
         return corr
 
+    def _axis_titles(self) -> tuple:
+        return "Missing column", "Value column"
+
+
+class _HeatmapDirection(_HeatmapValue):
+    """
+    Point-biserial correlation between a column's observed values and another
+    column's missingness.
+
+    Signed: the sign says which way the relationship runs, so it answers "do
+    *higher* values of this column go with gaps in that one?". The cost of carrying
+    a direction is that only relationships that have one are visible; a column whose
+    gaps sit at both of its tails reads as zero here. Use the dependence kind for
+    that case.
+    """
+
+    def _source(self) -> pd.DataFrame:
+        return self.data.value_missing_corr
+
     def _axis_roles(self) -> tuple:
         return "values of", "missingness of", "Point-biserial association"
 
-    def _axis_titles(self) -> tuple:
-        return "Missing column", "Value column"
+
+class _HeatmapDependence(_HeatmapValue):
+    """
+    Unsigned association between a column's observed values and another column's
+    missingness, on a 0-1 scale from independence upwards.
+
+    The statistic follows the value column's dtype: Kolmogorov-Smirnov for numeric
+    columns, Cramer's V for categorical ones. Both measure distance from
+    independence on the same scale, so one grid may hold both. It reports no
+    direction, which is what buys it the ability to see relationships that have
+    none.
+    """
+
+    def _source(self) -> pd.DataFrame:
+        return self.data.value_missing_dependence
+
+    def _is_signed(self) -> bool:
+        return False
+
+    def _axis_roles(self) -> tuple:
+        return "values of", "missingness of", "Dependence"

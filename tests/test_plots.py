@@ -37,8 +37,8 @@ PLOTS = [
     ("rate", lambda md: md.rate()),
     ("totals", lambda md: md.totals()),
     ("heatmap_correlation", lambda md: md.heatmap()),
-    ("heatmap_predictive", lambda md: md.heatmap(kind="predictive")),
-    ("heatmap_biserial", lambda md: md.heatmap(kind="biserial")),
+    ("heatmap_direction", lambda md: md.heatmap(kind="direction")),
+    ("heatmap_dependence", lambda md: md.heatmap(kind="dependence")),
     ("dendrogram", lambda md: md.dendrogram()),
     ("venn", lambda md: md.venn(selected_columns=["age", "income", "score"])),
     ("upset", lambda md: md.upset(selected_columns=["age", "income", "score", "rating"])),
@@ -326,26 +326,56 @@ def test_heatmap_drops_constant_columns_when_asked(md):
     assert "visits" not in list(md.heatmap(drop_constant_columns=True).fig.data[-1].x)
 
 
-def test_heatmap_biserial_rejects_the_triangle_mask(md):
+def test_heatmap_rejects_the_removed_predictive_kind(md):
+    """``predictive`` was ``correlation`` negated, so it is gone rather than aliased.
+
+    Presence and missingness are one mask, which makes corr(present_i, missing_j) the
+    same number as corr(missing_i, missing_j) with the opposite sign. Silently mapping
+    the old name onto ``correlation`` would flip every value a caller reads, so the
+    name raises and says what to use instead.
+    """
+    with pytest.raises(ValueError, match="kind='predictive' has been removed"):
+        md.heatmap(kind="predictive")
+
+
+def test_correlation_reads_the_mask_only(md, df):
+    """The correlation kind cannot see values, which is why it cannot diagnose MAR.
+
+    Shuffling every observed value while leaving the missingness pattern intact must
+    not move a single cell. This is the property that made a second mask-only heatmap
+    redundant, so it is worth pinning.
+    """
+    shuffled = df.copy()
+    rng = np.random.default_rng(0)
+    for col in shuffled.columns:
+        present = shuffled[col].notna()
+        values = shuffled.loc[present, col].to_numpy()
+        shuffled.loc[present, col] = rng.permutation(values)
+
+    before = np.asarray(md.heatmap().fig.data[-1].z, dtype=float)
+    after = np.asarray(MissingData(shuffled).heatmap().fig.data[-1].z, dtype=float)
+    assert np.allclose(before, after, equal_nan=True)
+
+
+def test_heatmap_direction_rejects_the_triangle_mask(md):
     """The mask drops the mirrored half of a symmetric matrix. Biserial is not
     symmetric, so masking by position deleted real associations instead."""
     with pytest.raises(ValueError, match="show_upper_triangle applies to the symmetric"):
-        md.heatmap(kind="biserial", show_upper_triangle=True)
+        md.heatmap(kind="direction", show_upper_triangle=True)
 
 
-@pytest.mark.parametrize("kind", ["correlation", "predictive"])
-def test_heatmap_triangle_mask_drops_only_duplicates(md, kind):
+def test_heatmap_triangle_mask_drops_only_duplicates(md):
     """On a symmetric matrix every masked cell has a surviving mirror image."""
-    full = np.asarray(md.heatmap(kind=kind).fig.data[-1].z, dtype=float)
-    masked = np.asarray(md.heatmap(kind=kind, show_upper_triangle=True).fig.data[-1].z, dtype=float)
+    full = np.asarray(md.heatmap().fig.data[-1].z, dtype=float)
+    masked = np.asarray(md.heatmap(show_upper_triangle=True).fig.data[-1].z, dtype=float)
     dropped = np.isfinite(full) & ~np.isfinite(masked)
     assert dropped.any(), "the mask did nothing"
     assert np.isfinite(masked.T[dropped]).all(), "a cell was dropped with no mirror kept"
 
 
-def test_heatmap_biserial_axes_carry_different_meanings(md):
+def test_heatmap_direction_axes_carry_different_meanings(md):
     """Biserial is asymmetric: rows are value columns, columns are missingness."""
-    fig = md.heatmap(kind="biserial").fig
+    fig = md.heatmap(kind="direction").fig
     assert fig.layout.xaxis.title.text == "Missing column"
     assert fig.layout.yaxis.title.text == "Value column"
 
@@ -963,3 +993,110 @@ def test_upset_sort_by_orders_intersections_and_the_cap_keeps_the_largest(md):
     assert list(ascending.y) == sorted(ascending.y)
     # Same intersections either way; only the order differs.
     assert sorted(descending.y) == sorted(ascending.y)
+
+
+def test_direction_honours_alphabetical_sorting(md):
+    """`sort_by` was tested for truthiness on this kind, so "alphabetical" silently
+    sorted by missing rate -- the same argument behaving differently per kind."""
+    alphabetical = md.heatmap(kind="direction", sort_by="alphabetical").fig.data[-1]
+    by_rate = md.heatmap(kind="direction", sort_by="missingness").fig.data[-1]
+
+    assert list(alphabetical.x) == sorted(alphabetical.x, reverse=True)
+    assert list(alphabetical.x) != list(by_rate.x)
+
+
+def test_direction_rejects_an_unknown_sort_key(md):
+    """The correlation kind gets this from select_columns; the value kinds do not."""
+    with pytest.raises(ValueError, match="sort_by must be"):
+        _ = md.heatmap(kind="direction", sort_by="nonsense").fig
+
+
+def test_dependence_finds_two_tailed_relationships_direction_cannot(df):
+    """The reason the dependence kind exists. Missingness here is a function of `age`:
+    `income` is missing exactly when `age` sits in its outer 30%. Both tails are gone,
+    so the two groups share a mean and the signed statistic reads as nothing."""
+    rng = np.random.default_rng(1)
+    age = rng.normal(50, 15, 2000)
+    outer = (age < np.percentile(age, 15)) | (age > np.percentile(age, 85))
+    md = MissingData(
+        pd.DataFrame({"age": age, "income": pd.Series(rng.normal(40, 8, 2000)).mask(outer)})
+    )
+
+    signed = md.heatmap(kind="direction").fig.data[-1]
+    unsigned = md.heatmap(kind="dependence").fig.data[-1]
+    cell = list(signed.y).index("age"), list(signed.x).index("income")
+
+    assert abs(signed.z[cell[0]][cell[1]]) < 0.05, "the signed statistic misses it"
+    assert unsigned.z[cell[0]][cell[1]] > 0.4, "the unsigned one must not"
+
+
+def test_dependence_reads_categorical_columns_direction_drops(md):
+    """Cramer's V needs no ordering, so a string column is measurable where a
+    correlation against it is not."""
+    frame = pd.DataFrame(
+        {
+            "group": ["a", "b", "c", "d"] * 50,
+            "target": [1.0, None, 3.0, 4.0] * 50,
+        }
+    )
+    value_md = MissingData(frame)
+
+    assert np.isnan(value_md.value_missing_corr.loc["group", "target"])
+    assert value_md.value_missing_dependence.loc["group", "target"] == 1.0
+
+
+def test_dependence_uses_an_unsigned_scale(md):
+    """A 0-1 statistic on a diverging -1..1 bar would invent a negative half that
+    cannot occur and put independence in the middle rather than at the end."""
+    signed = md.heatmap(kind="direction").fig.data[-1]
+    unsigned = md.heatmap(kind="dependence").fig.data[-1]
+
+    assert (signed.zmin, signed.zmax, signed.zmid) == (-1, 1, 0)
+    assert (unsigned.zmin, unsigned.zmax, unsigned.zmid) == (0, 1, None)
+    assert list(unsigned.colorbar.tickvals) == [0, 0.5, 1]
+    assert (
+        np.asarray(unsigned.z, dtype=float)[~np.isnan(np.asarray(unsigned.z, dtype=float))].min()
+        >= 0
+    )
+
+
+def test_heatmap_rejects_the_renamed_biserial_kind(md):
+    """Renamed rather than aliased: the same grid now offers two statistics, so the
+    old name no longer identifies which one a caller would get."""
+    with pytest.raises(ValueError, match="kind='biserial' is now kind='direction'"):
+        md.heatmap(kind="biserial")
+
+
+def test_boxplot_rejects_the_renamed_kind_argument(md):
+    """`kind` survives in the signature only to name its replacement. Every other
+    `kind` in the package selects what is computed; box against violin selects only
+    how one result is drawn, so it was the one that taught the wrong expectation."""
+    with pytest.raises(
+        ValueError, match=r"boxplot\(kind='violin'\) is now boxplot\(shape='violin'\)"
+    ):
+        md.boxplot(column="income", missing_column="age", kind="violin")
+
+
+def test_boxplot_shape_changes_only_the_rendering(md):
+    """The justification for the rename: both shapes carry identical numbers."""
+    box = md.boxplot(column="income", missing_column="age").fig.data
+    violin = md.boxplot(column="income", missing_column="age", shape="violin").fig.data
+
+    assert [trace.type for trace in box] == ["box", "box"]
+    assert [trace.type for trace in violin] == ["violin", "violin"]
+    assert all(list(a.y) == list(b.y) for a, b in zip(box, violin))
+
+
+def test_heatmap_suppresses_cell_text_where_it_stops_fitting(md):
+    """The 30-column threshold is a measurement, so it is worth pinning as one.
+
+    At the default width of 900 a 30-column grid gives each cell 30 pixels, and the
+    widest common cell text (`-0.74`) measures 31 pixels in plotly's 12px face. The
+    numbers are therefore drawn up to 30 columns and dropped past it.
+    """
+    frame = pd.DataFrame({f"c{i:02d}": [1.0, None, 3.0, None, 5.0] for i in range(31)})
+    wide = MissingData(frame)
+
+    assert 900 / 30 == 30.0, "the threshold is calibrated against the default width"
+    assert wide.heatmap(selected_columns=list(frame.columns[:30])).fig.data[-1].text is not None
+    assert wide.heatmap().fig.data[-1].text is None, "31 columns must suppress the text"

@@ -12,19 +12,19 @@ import missingfcup as mf
 df = mf.sample_data()
 md = mf.MissingData(df)
 
-md.heatmap(kind="biserial", title="Do values in one column predict gaps in another").show()
-# mf.heatmap(df, kind="biserial", title="Do values in one column predict gaps in another").show()
+md.heatmap(kind="direction", title="Do values in one column predict gaps in another").show()
+# mf.heatmap(df, kind="direction", title="Do values in one column predict gaps in another").show()
 
 # This is the one heatmap whose axes mean different things, so each gets its own
 # selection: rows are the columns whose values are read, columns are the ones whose
 # missingness is tested. Nothing here mirrors anything, which is why
 # show_upper_triangle is refused for this kind.
 md.heatmap(
-    kind="biserial",
+    kind="direction",
     selected_value_columns=["age", "income"],
     selected_missing_columns=["score", "rating"],
     title="Do age and income predict gaps in score and rating",
 ).show()
-# mf.heatmap(df, kind="biserial", selected_value_columns=["age", "income"],
+# mf.heatmap(df, kind="direction", selected_value_columns=["age", "income"],
 #            selected_missing_columns=["score", "rating"],
 #            title="Do age and income predict gaps in score and rating").show()

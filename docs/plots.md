@@ -24,38 +24,62 @@ is the visual signature of MCAR.
 
 | Call | What it shows |
 |---|---|
-| `heatmap()` | Correlation between columns' missingness patterns. |
+| `heatmap(kind="correlation")` | Correlation between columns' missingness patterns. The default kind. |
 | `dendrogram()` | Clusters columns by that same correlation. |
 | `venn()` | The 7 exclusive missingness regions of three columns. |
 | `upset()` | Every missingness intersection. Scales past the three Venn allows. |
 
-`heatmap()` gives you the pairwise view; `dendrogram()` groups those pairs into nested
-clusters, which is easier to read once you have more than a handful of columns. Use
-`venn()` for exactly three columns and `upset()` for more.
+`heatmap(kind="correlation")` gives you the pairwise view; `dendrogram()` groups those
+pairs into nested clusters, which is easier to read once you have more than a handful of
+columns. Use `venn()` for exactly three columns and `upset()` for more.
+
+`kind="correlation"` is the default, so `heatmap()` on its own draws the same figure. It
+is worth naming in a written analysis: the same page usually carries `kind="direction"`
+and `kind="dependence"` calls, and a bare `heatmap()` beside them asks the reader to
+remember which of the three it selects.
 
 ## Why are they missing?
 
-This is the part that distinguishes MCAR from MAR and MNAR.
+This is the part that distinguishes MCAR from MAR and MNAR. Every call above reads the
+missingness mask alone, which is why none of them appears here: knowing that two columns
+share a gap pattern does not say what opens the gaps. Only a plot that reads the observed
+*values* can answer that.
 
 | Call | What it shows |
 |---|---|
-| `heatmap(kind="predictive")` | Does *observing* one column predict a gap in another? |
-| `heatmap(kind="biserial")` | Do a column's *values* relate to another column's gaps? |
+| `heatmap(kind="dependence")` | Do a column's *values* relate to another column's gaps, in any way? |
+| `heatmap(kind="direction")` | The same question, signed: do *higher* values go with gaps? |
 | `density(column, missing_column)` | Distribution of `x`, split by whether `missing_column` is missing. |
 | `boxplot(column, missing_column)` | The same split, as boxes or violins. |
 | `scatterplot(x, y)` | Scatter that offsets missing values instead of dropping them. |
 | `parallel_coordinates()` | All columns at once, coloured by one column's missingness. |
 
-`heatmap(kind="biserial")` is the one to reach for first: it reads actual values rather
-than just the missingness pattern, so a strong cell is direct evidence that missingness
-depends on observed data, which is MAR.
+Reach for `heatmap(kind="dependence")` first. It reads actual values rather than just
+the missingness pattern, so a strong cell is direct evidence that missingness depends on
+observed data, which is MAR. It measures each column by its dtype — Kolmogorov-Smirnov
+for numeric, Cramér's V for categorical — so nothing is silently skipped, and it puts
+independence at 0 and a perfect relationship at 1.
 
-Confirm what it suggests with `density()` or `boxplot()`. Two curves sitting on top of
-each other mean the distribution does not change with missingness, which is consistent
+Then use `heatmap(kind="direction")` to ask which way a relationship found there runs.
+Its signed point-biserial cells say whether *higher* or *lower* values go with the gaps,
+which is what you need to describe the mechanism rather than merely detect it.
+
+The order matters, because the two are not interchangeable. A signed statistic can only
+see relationships that have a direction. A column whose gaps fall at both ends at once —
+a sensor clipping at its limits, a scale question skipped at either extreme — leaves the
+two groups with the same centre, and `direction` reads that as zero. `dependence` does
+not. Reading `direction` first and stopping at a flat cell is the way to miss a real
+mechanism.
+
+Confirm what either suggests with `density()` or `boxplot()`. Two curves sitting on top
+of each other mean the distribution does not change with missingness, which is consistent
 with MCAR. Curves that pull apart mean it does.
 
-For a statistical version of the same comparison, see `mann_whitney_test()` in the
-[API reference](api.md).
+For statistical versions of the same comparison, see `mann_whitney_test()` and
+`ks_test()` in the [API reference](api.md). They stand in the same relation as the two
+heatmap kinds: Mann-Whitney compares where the groups sit, `ks_test()` compares their
+whole distributions, and a significant `ks_test()` against a flat `mann_whitney_test()`
+is what a two-tailed dependence looks like.
 
 ## Shared options
 

@@ -5,7 +5,7 @@ plot object. This matches how missingno is used (``msno.matrix(df)``)::
 
     import missingfcup as mf
     mf.matrix(df)
-    mf.heatmap(df, kind="predictive")
+    mf.heatmap(df, kind="dependence")
     mf.bar(df, measure="fraction")
 
 If you work on the same DataFrame more than once, use the ``MissingData`` object

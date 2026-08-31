@@ -16,10 +16,10 @@ _NAN_COLOR = "#c7c7c7"
 
 
 class _AssociationHeatmap(_Plot):
-    """Shared machinery for the three association heatmaps: correlation, predictive,
-    and biserial.
+    """Shared machinery for the association heatmaps: correlation, direction and
+    dependence.
 
-    They all draw a matrix of association values in [-1, 1] and build the figure the same
+    All draw a matrix of association values and build the figure the same
     way (optional upper-triangle mask, in-cell value text, a grey underlay for NaN cells,
     and one main heatmap trace). A subclass only supplies:
 
@@ -57,14 +57,24 @@ class _AssociationHeatmap(_Plot):
     def _matrix(self) -> pd.DataFrame:
         raise NotImplementedError
 
+    def _is_signed(self) -> bool:
+        """Whether this heatmap's statistic can be negative.
+
+        A signed statistic runs -1..1 around a meaningful zero and needs a diverging
+        scale with two poles. An unsigned one runs 0..1 from independence upwards,
+        where a diverging scale would invent a negative half that cannot occur and
+        put "no relationship" in the middle of the bar instead of at its end.
+        """
+        return True
+
     def _colorbar_config(self) -> dict:
         """Compact bar, no title, and only the ends and midpoint marked.
 
-        All three heatmaps share a -1..1 scale, so the labels between the ends add
-        width without adding meaning.
+        The labels between the ends add width without adding meaning, so only the
+        range's own landmarks are drawn.
         """
         return dict(
-            tickvals=[-1, 0, 1],
+            tickvals=[-1, 0, 1] if self._is_signed() else [0, 0.5, 1],
             len=0.5,
             thickness=14,
         )
@@ -72,13 +82,13 @@ class _AssociationHeatmap(_Plot):
     def _axis_roles(self) -> tuple:
         """What the row axis and the column axis mean, and what the number is called.
 
-        The three kinds differ only in this, so keeping it here means one tooltip
-        shape across all of them rather than three that read differently.
+        The kinds differ only in this, so keeping it here means one tooltip shape
+        across all of them rather than one that reads differently per kind.
         """
         raise NotImplementedError
 
     def _axis_titles(self) -> tuple:
-        """(x, y) axis titles. Like the hover, the three kinds differ only here."""
+        """(x, y) axis titles. Like the hover, the kinds differ only here."""
         raise NotImplementedError
 
     def _hover_template(self) -> str:
@@ -155,16 +165,22 @@ class _AssociationHeatmap(_Plot):
                 z=corr_values,
                 x=x_labels,
                 y=y_labels,
-                # Poles of all three kinds are 'more missing' against 'more
-                # present', so they use the same two colours as every other plot.
-                colorscale=[
-                    [0.0, self.present_color],
-                    [0.5, "#ffffff"],
-                    [1.0, self.missing_color],
-                ],
-                zmin=-1,
+                # Signed kinds have two poles, 'more missing' against 'more
+                # present', and use the same two colours as every other plot.
+                # Unsigned ones have one: white is independence, and colour is
+                # distance from it.
+                colorscale=(
+                    [
+                        [0.0, self.present_color],
+                        [0.5, "#ffffff"],
+                        [1.0, self.missing_color],
+                    ]
+                    if self._is_signed()
+                    else [[0.0, "#ffffff"], [1.0, self.missing_color]]
+                ),
+                zmin=-1 if self._is_signed() else 0,
                 zmax=1,
-                zmid=0,
+                zmid=0 if self._is_signed() else None,
                 text=text if effective_show_values else None,
                 texttemplate="%{text}" if effective_show_values else None,
                 showscale=self.show_legend,
