@@ -175,15 +175,19 @@ because MNAR collapses too and on `titanic` lands on the same count of 4 that MA
 
 Every multivariate dataset analysis exercises the whole package. This table is for
 finding a specific feature, and for seeing where one is deliberately absent.
-`mechanism_variants/` is not covered: it answers a narrower question with three plots.
+`mechanism_variants/` is listed only where it earns a row: it answers a narrower question
+with three plots, `matrix`, `heatmap` and `density`, and leans on the metrics instead.
 
 | Feature | Where |
 |---|---|
-| all 12 plots, both heatmap kinds beyond correlation | every multivariate dataset analysis |
+| all 12 plots | every multivariate dataset analysis |
+| `heatmap(kind="direction")` | every dataset analysis |
+| `heatmap(kind="dependence")` | `contraceptive_method`, whose columns are categories stored as codes |
 | `parallel_coordinates(kind="missingness")` | every multivariate dataset analysis |
 | `boxplot(shape="violin")`, `bar(measure="fraction")` | every dataset analysis |
 | `matrix(max_columns=)` | the four wide datasets |
 | `littles_mcar_test()`, `mann_whitney_test()` | every dataset analysis |
+| `ks_test()` | `contraceptive_method` and `mechanism_variants`, beside the reading it disagrees with |
 | `perfectly_correlated_missing_columns()`, `missing_pattern_counts()` | every multivariate dataset analysis |
 | metrics (`total_missing_rate`, `col_missing_rate`, `rows_complete`, …) | every dataset analysis |
 
