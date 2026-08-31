@@ -206,10 +206,10 @@ interactive Plotly figures)
   `matrix()` drew at most 50 columns and `rate()` and `dendrogram()` at most 30, with
   no warning about the rest -- the same silent hiding that `ignore_high_missingness`
   used to do. Pass `max_columns=N` to cap.
-* `dendrogram(line_width=3.0)` and `parallel_coordinates(line_width=2.0)` are both
-  thicker, and both floats.
-* `dendrogram(line_width=...)` is a float, matching `parallel_coordinates`. Same
-  concept, and it was the only one typed as an int.
+* Dendrogram and parallel-coordinates lines are thicker. The width was a parameter on
+  both while this entry was written; it is a module constant on each now, since a line
+  weight is a property of the drawing rather than a question the caller has an opinion
+  about.
 * `venn(value=...)` is now `venn(measure=..., scale=...)`, the same vocabulary `bar()`
   and `rate()` use. `value` meant two unrelated things across the package: on `bar` it
   picks which series to draw (`"missing"` / `"present"`), on `venn` it picked a unit
@@ -238,7 +238,7 @@ interactive Plotly figures)
 * `legend_title` is gone from every plot. The legend entries now carry the column name,
   so the title had nothing left to say, and four plot classes no longer need to derive
   one. Colour is set through `missing_color` / `present_color` as before.
-* `show_legend` is gone from `totals()`, `matrix()`, `rate()`, `heatmap()`,
+* `show_legend` is gone from `totals()`,
   `dendrogram()` and `upset()`, which draw no legend at all -- they label their marks
   directly or use a colour bar.
 * The heatmap colour bars lost their three-line HTML titles and sentence-length tick

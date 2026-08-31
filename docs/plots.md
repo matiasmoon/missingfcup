@@ -71,8 +71,9 @@ md.bar(
 ).show()
 ```
 
-`upset()` draws every column you name in `selected_columns`; `max_intersections`
-caps how many intersection bars are shown.
+`upset()` draws every column you name in `selected_columns`. The number of intersection
+bars is capped at 20, which is not a parameter: past that the bars stop being readable.
+When the cap bites, the plot draws the 20 largest intersections and warns that it did.
 
 ## Combining plots
 

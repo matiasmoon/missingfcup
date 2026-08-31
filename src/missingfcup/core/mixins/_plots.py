@@ -410,8 +410,10 @@ class _MissingDataPlotMixin:
         y : str
             Column drawn on the y-axis.
         axis_padding : float, default 0.1
-            Fraction of the data span added as padding at each end of both axes, which
-            is where the offset markers for missing values are placed.
+            Fraction of the data span added as padding at each end of both axes. This
+            widens the frame only; the offset markers for missing values sit a fixed
+            tenth of the observed span outside the data either way, so ``0.0`` still
+            draws them, flush against the edge rather than clear of it.
         missing_column : str, optional
             Colour points by whether this column is missing in that row, instead of by
             the missingness of ``x`` and ``y``. Raises ValueError if the column is not
@@ -687,8 +689,10 @@ class _MissingDataPlotMixin:
         selected_columns : list of str, optional
             Columns to draw as axes. When omitted, every column is used.
         missing_column : str, optional
-            Colour each line by whether this column is missing in that row. When
-            omitted the legend is titled "Status"; otherwise ``"<column>_NA"``.
+            Colour each line by whether this column is missing in that row, drawing
+            two series labelled ``"NA-<column>"`` and ``"!NA-<column>"``. When
+            omitted every line is drawn the same colour and no legend appears,
+            since a single unnamed series has nothing to distinguish.
         high_missingness_threshold : float, optional
             Drop columns whose missing rate reaches this value, before anything
             else. ``None``, the default, keeps every column.
