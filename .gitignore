@@ -29,3 +29,12 @@ notebooks/**/plots/
 
 # Notebooks staged into the docs site by `make docs-stage`; the originals live in notebooks/.
 docs/notebooks/
+
+# Local virtual environments. Two are expected: .venv on 3.9, the declared floor, which
+# is what keeps requires-python honest, and .venv312 on a current Python, which is the
+# only place [generate] installs since mdatagen needs 3.10.12 or newer.
+.venv*/
+
+# JetBrains IDE settings. The .iml file pins an absolute interpreter path, so it is
+# wrong on every machine but the one that wrote it.
+.idea/
