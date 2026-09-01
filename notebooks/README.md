@@ -182,12 +182,12 @@ with three plots, `matrix`, `heatmap` and `density`, and leans on the metrics in
 |---|---|
 | all 12 plots | every multivariate dataset analysis |
 | `heatmap(kind="direction")` | every dataset analysis |
-| `heatmap(kind="dependence")` | `contraceptive_method`, whose columns are categories stored as codes |
+| `heatmap(kind="dependence")` | `titanic` as the signed reading's companion, and `contraceptive_method`, whose columns are categories stored as codes |
 | `parallel_coordinates(kind="missingness")` | every multivariate dataset analysis |
 | `boxplot(shape="violin")`, `bar(measure="fraction")` | every dataset analysis |
 | `max_columns=` | the four wide datasets: on `matrix` in three, on `parallel_coordinates` in `student_performance` |
 | `littles_mcar_test()`, `mann_whitney_test()` | every dataset analysis |
-| `ks_test()` | `contraceptive_method` and `mechanism_variants`, beside the reading it disagrees with |
+| `ks_test()` | `titanic`, `contraceptive_method` and `mechanism_variants`, each beside the rank test it is compared against |
 | `perfectly_correlated_missing_columns()`, `missing_pattern_counts()` | every multivariate dataset analysis |
 | metrics (`total_missing_rate`, `col_missing_rate`, `rows_complete`, …) | every dataset analysis |
 
