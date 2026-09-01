@@ -161,7 +161,7 @@ of them:
 | `titanic` (both) | 0.62, 0.34 | correct, MCAR not rejected |
 | `student_performance` | 0.24 | correct |
 | `contraceptive_method` | 0.039 | **false positive** at the 0.05 threshold |
-| `default_credit` | 0.0 | **false positive**; 30000 rows gives it power to flag trivia |
+| `default_credit` | 2.1e-45 | **false positive**; 30000 rows gives it power to flag trivia |
 | `breast_cancer` | 1.0 (and 1.0 for MAR) | **uninformative**; 30 columns over 569 rows degenerates the statistic |
 
 `perfectly_correlated_missing_columns()` is the dependable one: it returns identical
