@@ -109,19 +109,24 @@ class Panel:
 
                 fig.add_trace(trace_copy, row=row, col=col)
 
-            if plot_fig.layout.xaxis.title.text:
-                fig.update_xaxes(
-                    title_text=plot_fig.layout.xaxis.title.text,
-                    row=row,
-                    col=col,
-                )
-
-            if plot_fig.layout.yaxis.title.text:
-                fig.update_yaxes(
-                    title_text=plot_fig.layout.yaxis.title.text,
-                    row=row,
-                    col=col,
-                )
+            # Carry the axis settings across, not only the titles. Plots that draw on
+            # numeric positions and name them with ticktext -- the matrix does this on
+            # both axes -- would otherwise show bare indices once panelled.
+            for source, update in (
+                (plot_fig.layout.xaxis, fig.update_xaxes),
+                (plot_fig.layout.yaxis, fig.update_yaxes),
+            ):
+                settings = {}
+                if source.title.text:
+                    settings["title_text"] = source.title.text
+                if source.ticktext is not None:
+                    settings["tickmode"] = "array"
+                    settings["tickvals"] = source.tickvals
+                    settings["ticktext"] = source.ticktext
+                if source.tickangle is not None:
+                    settings["tickangle"] = source.tickangle
+                if settings:
+                    update(row=row, col=col, **settings)
 
         if self.width is not None:
             total_width = self.width

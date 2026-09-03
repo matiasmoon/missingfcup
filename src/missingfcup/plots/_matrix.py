@@ -11,6 +11,9 @@ from missingfcup.plots._color import hex_to_rgba
 from missingfcup.plots._plot import _Plot
 from missingfcup.plots._selection import select_columns
 
+# Most y-axis ticks to draw; more than this and the labels overlap.
+_MAX_Y_TICKS = 12
+
 # Fixed presentation for the border marking the column ``sort_by`` names. Must read
 # as annotation, not data, so it is deliberately not one of the plot's colours and
 # not tunable.
@@ -152,6 +155,17 @@ class _Matrix(_Plot):
         )
         return order.sort_values(["bucket", "rank"], kind="stable").index
 
+    @property
+    def row_labels(self) -> List[str]:
+        """The row labels in drawn order, one per row.
+
+        The y axis thins its ticks to stay readable, so the rendered labels are a
+        subset. This is the full sequence: the value of ``sort_by`` for each row, in
+        the order the matrix draws them, or the row index when no column was named.
+        """
+        self.fig  # noqa: B018 -- builds and caches the figure if it has not been built
+        return self._row_labels
+
     def _build_figure(self) -> go.Figure:
         df = self._prepare_df()
 
@@ -190,11 +204,17 @@ class _Matrix(_Plot):
         else:
             y_labels = [str(i) for i in df.index]
 
+        # The labels are not the coordinates. A sort column repeats its values, and
+        # go.Heatmap treats a repeated y as the same row, so every row sharing a value
+        # would collapse onto one and overplot. Positions stay unique, exactly as the
+        # x axis already does, and the labels are attached as ticks below.
+        y_positions = list(range(len(df)))
+
         fig = go.Figure(
             data=go.Heatmap(
                 z=z,
                 x=x_positions,
-                y=y_labels,
+                y=y_positions,
                 colorscale=colorscale,
                 zmin=0,
                 zmax=1,
@@ -236,6 +256,27 @@ class _Matrix(_Plot):
             ticktext=x_labels,
             tickangle=-45,
         )
+
+        # tickmode="array" draws every tick it is given, so the labels have to be
+        # thinned here or they overlap. The full ordered sequence stays available on
+        # the plot object as ``row_labels``.
+        if sort_column and sort_column in df.columns:
+            seen = set()
+            y_tickvals, y_ticktext = [], []
+            for pos, label in zip(y_positions, y_labels):
+                if label not in seen:
+                    seen.add(label)
+                    y_tickvals.append(pos)
+                    y_ticktext.append(label)
+            if len(y_tickvals) > _MAX_Y_TICKS:
+                step = len(y_tickvals) // _MAX_Y_TICKS + 1
+                y_tickvals, y_ticktext = y_tickvals[::step], y_ticktext[::step]
+        else:
+            step = max(1, len(y_positions) // _MAX_Y_TICKS)
+            y_tickvals, y_ticktext = y_positions[::step], y_labels[::step]
+
+        self._row_labels = list(y_labels)
+        fig.update_yaxes(tickmode="array", tickvals=y_tickvals, ticktext=y_ticktext)
         # When sort_by names a column the y labels are that column's values, so the
         # axis is named after it; otherwise rows are only identified by index.
         fig.update_xaxes(title_text="Column")

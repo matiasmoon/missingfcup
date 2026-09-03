@@ -451,7 +451,7 @@ def test_dendrogram_draws_one_leaf_per_column(md, df):
 )
 def test_matrix_row_order_follows_the_column_dtype(column, expected):
     frame = pd.DataFrame({"key": column, "score": [1.0, None, 3.0, None]})
-    drawn = MissingData(frame).matrix(sort_by="key", ascending=True).fig.data[0].y
+    drawn = MissingData(frame).matrix(sort_by="key", ascending=True).row_labels
     assert list(drawn) == expected
 
 
@@ -459,8 +459,8 @@ def test_matrix_sorts_missing_rows_last_in_both_directions():
     """Reversing the sort must not push the rows under study off the far end."""
     frame = pd.DataFrame({"key": [2.0, None, 1.0], "score": [1.0, None, 3.0]})
     md = MissingData(frame)
-    assert list(md.matrix(sort_by="key", ascending=True).fig.data[0].y)[-1] == "NaN"
-    assert list(md.matrix(sort_by="key", ascending=False).fig.data[0].y)[-1] == "NaN"
+    assert list(md.matrix(sort_by="key", ascending=True).row_labels)[-1] == "NaN"
+    assert list(md.matrix(sort_by="key", ascending=False).row_labels)[-1] == "NaN"
 
 
 @pytest.fixture
@@ -479,9 +479,7 @@ def nominal():
 
 def test_sort_categories_draws_the_sequence_as_written(nominal):
     drawn = (
-        nominal.matrix(sort_by="country", sort_categories=["Portugal", "France", "Spain"])
-        .fig.data[0]
-        .y
+        nominal.matrix(sort_by="country", sort_categories=["Portugal", "France", "Spain"]).row_labels
     )
     # Italy was not named, so it follows the named values; NaN stays last.
     assert list(drawn) == ["Portugal", "France", "France", "Spain", "Spain", "Italy", "NaN"]
@@ -492,7 +490,7 @@ def test_sort_categories_ignores_ascending(nominal):
     top of it would draw the reverse of what the caller wrote."""
     order = ["Portugal", "France", "Spain"]
     both = [
-        list(nominal.matrix(sort_by="country", sort_categories=order, ascending=asc).fig.data[0].y)
+        list(nominal.matrix(sort_by="country", sort_categories=order, ascending=asc).row_labels)
         for asc in (True, False)
     ]
     assert both[0] == both[1]
@@ -501,9 +499,7 @@ def test_sort_categories_ignores_ascending(nominal):
 
 def test_sort_categories_reverses_by_reversing_the_sequence(nominal):
     drawn = (
-        nominal.matrix(sort_by="country", sort_categories=["Spain", "France", "Portugal"])
-        .fig.data[0]
-        .y
+        nominal.matrix(sort_by="country", sort_categories=["Spain", "France", "Portugal"]).row_labels
     )
     assert list(drawn)[:2] == ["Spain", "Spain"]
 
@@ -530,7 +526,7 @@ def test_sort_categories_warns_about_values_that_are_not_there(nominal):
     something rather than silently ordering nothing."""
     plot = nominal.matrix(sort_by="country", sort_categories=["Portugal", "Narnia"])
     with pytest.warns(UserWarning, match=r"sort_categories named \['Narnia'\]"):
-        drawn = plot.fig.data[0].y
+        drawn = plot.row_labels
 
     # The valid part of the order still applies.
     assert list(drawn)[0] == "Portugal"
@@ -544,7 +540,7 @@ def test_sort_categories_is_quiet_when_every_value_matches(nominal):
     with _warnings.catch_warnings():
         _warnings.simplefilter("error")
         drawn = (
-            nominal.matrix(sort_by="country", sort_categories=["Portugal", "France"]).fig.data[0].y
+            nominal.matrix(sort_by="country", sort_categories=["Portugal", "France"]).row_labels
         )
     # Spain and Italy were not named, so they follow; nothing warned about them.
     assert list(drawn)[:3] == ["Portugal", "France", "France"]
@@ -554,7 +550,7 @@ def test_matrix_labels_rows_by_the_column_it_sorted_on(md):
     """Sorting scrambles the index, so labelling rows with it says nothing about
     where a row sits. The value that decided the position is what does."""
     ages = [v for v in md.data["age"] if pd.notna(v)]
-    drawn = list(md.matrix(sort_by="age", ascending=False).fig.data[0].y)
+    drawn = list(md.matrix(sort_by="age", ascending=False).row_labels)
 
     assert drawn[: len(ages)] == [str(int(v)) for v in sorted(ages, reverse=True)]
     assert drawn[-1] == "NaN", "rows missing that value still sort last"
@@ -564,7 +560,7 @@ def test_matrix_falls_back_to_the_index_with_no_sort_column(md):
     """The keyword sorts order columns, not rows, so there is no per-row value to
     label with and the index is all that is left."""
     for sort_by in (None, "missingness", "alphabetical"):
-        drawn = list(md.matrix(sort_by=sort_by).fig.data[0].y)
+        drawn = list(md.matrix(sort_by=sort_by).row_labels)
         assert drawn == [str(i) for i in md.data.index]
 
 
@@ -843,8 +839,8 @@ def test_sample_data_returns_a_fresh_copy():
 def test_matrix_sort_by_a_data_column_orders_the_rows(md):
     """sort_by naming a column sorts the rows by its values, which is the MAR check:
     does missingness cluster at one end of another variable?"""
-    desc = list(md.matrix(sort_by="age", ascending=False).fig.data[0].y)
-    asc = list(md.matrix(sort_by="age", ascending=True).fig.data[0].y)
+    desc = list(md.matrix(sort_by="age", ascending=False).row_labels)
+    asc = list(md.matrix(sort_by="age", ascending=True).row_labels)
     assert desc != asc, "ascending is being ignored"
 
     observed_desc = [float(v) for v in desc if v != "NaN"]
